@@ -1,9 +1,11 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
+#include <limits>
 
 namespace telemetry {
 static_assert(sizeof(float) == 4, "Protocol requires 32-bit floats");
+static_assert(std::numeric_limits<float>::is_iec559, "Protocol requires IEEE-754 floats");
 inline void u16(uint8_t* p, uint16_t v) { p[0] = v; p[1] = v >> 8; }
 inline void u32(uint8_t* p, uint32_t v) {
   for (unsigned i = 0; i < 4; ++i) p[i] = v >> (8 * i);

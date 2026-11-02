@@ -1,0 +1,100 @@
+{
+  "description": "Fixed interoperability examples; sync CRC provisional",
+  "cases": [
+    {
+      "name": "stationary-simulation-invalid",
+      "type": "data",
+      "values": {
+        "seq": 0,
+        "timestamp": 0,
+        "flags": 64
+      },
+      "hex": "a55a0101400000000000000000000000000000000000000000000000000000000ae81c41000000000000000000000000000000007139"
+    },
+    {
+      "name": "forward-left",
+      "type": "data",
+      "values": {
+        "seq": 4660,
+        "timestamp": 305419896,
+        "flags": 7,
+        "gyro": [
+          1,
+          -2,
+          3
+        ],
+        "accel": [
+          0.5,
+          -0.25,
+          9.75
+        ],
+        "ticks": 250,
+        "speed": 1.5,
+        "wheel_age": 500,
+        "steering": 0.25,
+        "steer_age": 1000
+      },
+      "hex": "a55a010107003412785634120000803f000000c0000040400000003f000080be00001c41fa0000000000c03ff4010000803ee8035a8e"
+    },
+    {
+      "name": "reverse-right-boundary",
+      "type": "data",
+      "values": {
+        "seq": 65535,
+        "timestamp": 4294967295,
+        "flags": 39,
+        "gyro": [
+          -1,
+          2,
+          -3
+        ],
+        "accel": [
+          -0.5,
+          0.25,
+          9.75
+        ],
+        "ticks": -2147483648,
+        "speed": -1.5,
+        "wheel_age": 65535,
+        "steering": -0.25,
+        "steer_age": 65535
+      },
+      "hex": "a55a01012700ffffffffffff000080bf00000040000040c0000000bf0000803e00001c41000000800000c0bfffff000080beffff33c2"
+    },
+    {
+      "name": "counters-wrap",
+      "type": "data",
+      "values": {
+        "seq": 65536,
+        "timestamp": 4294967296,
+        "flags": 0,
+        "ticks": 2147483647
+      },
+      "hex": "a55a0101000000000000000000000000000000000000000000000000000000000ae81c41ffffff7f000000000000000000000000e860"
+    },
+    {
+      "name": "sync-zero",
+      "type": "sync",
+      "timestamp": 0,
+      "hex": "a55a0201000000000000000090d4"
+    },
+    {
+      "name": "sync-above-32-bit",
+      "type": "sync",
+      "timestamp": 4294967296,
+      "hex": "a55a0201000000000100000024a2"
+    },
+    {
+      "name": "sync-pattern",
+      "type": "sync",
+      "timestamp": 72623859790382856,
+      "hex": "a55a020108070605040302015a98"
+    },
+    {
+      "name": "sync-max",
+      "type": "sync",
+      "timestamp": 18446744073709551615,
+      "hex": "a55a0201ffffffffffffffff7172"
+    }
+  ]
+}

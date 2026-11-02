@@ -11,6 +11,7 @@ ESP32 compilation, hardware timing, real sensors and actuator control are not ye
 - [Planned hardware baseline](docs/HARDWARE.md)
 - [Interface decisions and open questions](docs/INTERFACES.md)
 - [Validation results](docs/VALIDATION.md)
+- [Build settings and packet compatibility checks](docs/BUILD.md)
 - [Change history](CHANGELOG.md)
 
 Related team repositories:
@@ -56,6 +57,8 @@ Install Arduino IDE and Espressif's ESP32 board support. Open the `telemetry_dem
 sketch, select the exact ESP32-S3 board and its N8R2 memory settings, then build/upload.
 The sketch uses `Serial` at 921600 baud and schedules data at 100 Hz and sync at 1 Hz.
 The USB/UART route depends on the board configuration and must be verified before use.
+The reproducible build profile now selects UART0 via a USB-to-UART bridge; see
+`firmware/build-config.json`. Native USB is not enabled by that profile.
 There is no debug text on the data port. Loop scheduling is a prototype, not a verified
 real-time guarantee; delayed releases are skipped rather than sent as a catch-up burst.
 

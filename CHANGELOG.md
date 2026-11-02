@@ -1,5 +1,12 @@
 # Change history
 
+## 0.2.0 — 2026-11-02 — build and interoperability checks
+
+- Pinned ESP32-S3 N8R2 bench build configuration (Arduino core 3.3.0).
+- Eight reusable fixed packet examples and 200 seeded C++/Python comparisons.
+- Host encoder compilation and target firmware compilation in GitHub Actions.
+- Build guide with explicit USB/UART settings and hardware-validation boundaries.
+
 ## 0.1.0 — 2026-11-02 — initial prototype
 
 - Data packet encoder and stream decoder.

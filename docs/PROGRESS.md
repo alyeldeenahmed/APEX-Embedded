@@ -14,6 +14,10 @@
 
 ## Not yet completed
 
+Milestone 2 now adds pinned build settings, eight fixed packet examples and a
+host C++/Python comparison with 200 additional seeded cases. Python reference
+tests pass locally; target build and host C++ results are pending the CI run.
+
 - ESP32 firmware compilation, flashing or real-board testing.
 - Actual MPU-6050 acquisition and data-ready interrupt timestamps.
 - Shaft pulse capture, speed calculation and direction detection.
