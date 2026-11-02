@@ -1,0 +1,103 @@
+# APEX Embedded
+
+Embedded firmware and interface development for the APEX TT-02 graduation project.
+
+**Current milestone:** simulated sensor telemetry. The computer-side packet tests pass;
+ESP32 compilation, hardware timing, real sensors and actuator control are not yet verified.
+
+## Team handover
+
+- [Progress and next milestones](docs/PROGRESS.md)
+- [Planned hardware baseline](docs/HARDWARE.md)
+- [Interface decisions and open questions](docs/INTERFACES.md)
+- [Validation results](docs/VALIDATION.md)
+- [Change history](CHANGELOG.md)
+
+Related team repositories:
+
+- Control: https://github.com/Maxrwan/MPC_Controller_v1_IronManStyle
+- Perception: https://github.com/FatmaAshraf23/grad-perception
+
+The linked teams' software and documents are external references. This repository
+does not claim their interfaces have been jointly approved or physically integrated.
+
+## Milestone 1: telemetry packet
+
+Status: software prototype. No hardware, actuator outputs or real sensor readings.
+
+This milestone implements the 54-byte data frame in the Perception v0.1 agreement.
+The ESP32 sketch sends simulated values for bench development only. All sensor-valid
+bits are deliberately zero, so a real estimator must not treat the data as valid.
+Do not connect this prototype to the vehicle's autonomous operating pipeline.
+
+## Files
+
+- `firmware/telemetry_demo/telemetry_demo.ino`: Arduino ESP32-S3 bench sketch.
+- `firmware/telemetry_demo/packet.h`: explicit byte serialization and CRC.
+- `protocol.py`: computer-side encoder, stream decoder and simulated capture.
+- `test_protocol.py`: independent CRC reference and packet/parser tests.
+
+## Computer-only use
+
+Run from this directory with Python 3 (no extra packages):
+
+```
+python -m unittest -v
+python protocol.py generate demo.bin
+python protocol.py decode demo.bin
+```
+
+The generated capture represents one second of sample timestamps; generation itself
+is not paced in real time and does not establish hardware timing performance.
+
+## ESP32 bench use (later)
+
+Install Arduino IDE and Espressif's ESP32 board support. Open the `telemetry_demo`
+sketch, select the exact ESP32-S3 board and its N8R2 memory settings, then build/upload.
+The sketch uses `Serial` at 921600 baud and schedules data at 100 Hz and sync at 1 Hz.
+The USB/UART route depends on the board configuration and must be verified before use.
+There is no debug text on the data port. Loop scheduling is a prototype, not a verified
+real-time guarantee; delayed releases are skipped rather than sent as a catch-up burst.
+
+## Data frame (54 bytes, little-endian)
+
+| Offset | Bytes | Field |
+|---|---|---|
+| 0 | 2 | Sync A5 5A |
+| 2 | 1 | Type 01 |
+| 3 | 1 | Version 01 |
+| 4 | 1 | Flags |
+| 5 | 1 | Reserved, zero |
+| 6 | 2 | Sequence, unsigned, wraps modulo 65536 |
+| 8 | 4 | IMU sample time in microseconds, low 32 bits |
+| 12 | 12 | Gyro x/y/z, float32 rad/s, no bias removal |
+| 24 | 12 | Acceleration x/y/z, float32 m/s², includes gravity |
+| 36 | 4 | Cumulative signed encoder ticks |
+| 40 | 4 | Wheel speed float32 m/s |
+| 44 | 2 | Wheel sample age, microseconds |
+| 46 | 4 | Road-wheel angle float32 radians, positive left |
+| 50 | 2 | Steering sample age, microseconds |
+| 52 | 2 | CRC-16/CCITT-FALSE over bytes 2–51 |
+
+CRC parameters: polynomial 0x1021, initial 0xFFFF, no reflection, xor-out zero.
+Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
+4 standstill, 5 steering measured, 6 reset seen; bit 7 reserved.
+
+## Explicit provisional choices
+
+- The PDF specifies a 14-byte sync frame but not its CRC coverage. This prototype
+  uses the same CRC algorithm over bytes 2–11 (type, version, uint64 timestamp).
+  Confirm this with Perception before freezing the interface.
+- Sync timestamps use the same boot-relative microsecond clock as data timestamps.
+- The simulated first packet has reset_seen set. Validity flags remain false.
+- The decoder checks framing/CRC and displays values; it is not Perception's ROS
+  bridge, clock mapping, freshness monitor or EKF.
+- Real sample timestamps must come from sensor acquisition. The sketch's timestamps
+  represent synthetic sample generation only.
+
+## Remaining work
+
+Compile and run on the selected board; verify 100 Hz timing under load; add actual
+IMU data-ready acquisition, independent encoder capture and honest freshness flags;
+agree startup/calibration behavior and sync CRC; agree Control's command protocol.
+Actuator control is intentionally not implemented in this milestone.
