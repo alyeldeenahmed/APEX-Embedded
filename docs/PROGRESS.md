@@ -11,14 +11,16 @@
 - Implemented a C++ packet serializer and Arduino ESP32 simulation sketch.
 - Added a provisional 14-byte time-sync frame implementation.
 - Ran eight Python tests and a 100-data-frame simulated capture check successfully.
+- Milestone 2: compiled the ESP32-S3 N8R2 bench profile using Arduino core 3.3.0.
+- Passed nine Python tests, eight fixed reference packets and 200 additional
+  host C++/Python packet comparisons in GitHub Actions.
+- Published reusable packet vectors and a reproducible build guide.
+
+Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41523561273
 
 ## Not yet completed
 
-Milestone 2 now adds pinned build settings, eight fixed packet examples and a
-host C++/Python comparison with 200 additional seeded cases. Python reference
-tests pass locally; target build and host C++ results are pending the CI run.
-
-- ESP32 firmware compilation, flashing or real-board testing.
+- ESP32 flashing or real-board testing.
 - Actual MPU-6050 acquisition and data-ready interrupt timestamps.
 - Shaft pulse capture, speed calculation and direction detection.
 - Steering measurement or commanded-angle reporting from a real actuator path.
@@ -37,7 +39,7 @@ tests pass locally; target build and host C++ results are pending the CI run.
 ## Next milestones
 
 1. Confirm data/sync interoperability with Perception using known binary examples.
-2. Compile the simulation sketch for the exact ESP32-S3 board and check serial timing.
+2. Verify the purchased board against the compiled profile, upload and check serial timing.
 3. Replace simulated IMU readings with real sensor acquisition.
 4. Add shaft sensing and steering reporting after agreeing freshness semantics.
 5. Agree the Control command interface, then implement command and actuator handling.

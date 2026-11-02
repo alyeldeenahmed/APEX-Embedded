@@ -2,8 +2,11 @@
 
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
-**Current milestone:** simulated sensor telemetry. The computer-side packet tests pass;
-ESP32 compilation, hardware timing, real sensors and actuator control are not yet verified.
+**Current milestone:** simulated telemetry with a verified ESP32-S3 N8R2 build and
+host C++/Python packet interoperability. Nine Python tests and 208 cross-language
+packet cases pass. Hardware timing, real sensors and actuator control remain unverified.
+
+[Milestone 2 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41523561273)
 
 ## Team handover
 
@@ -100,7 +103,7 @@ Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
 
 ## Remaining work
 
-Compile and run on the selected board; verify 100 Hz timing under load; add actual
+Run on the selected board; verify 100 Hz timing under load; add actual
 IMU data-ready acquisition, independent encoder capture and honest freshness flags;
 agree startup/calibration behavior and sync CRC; agree Control's command protocol.
 Actuator control is intentionally not implemented in this milestone.
