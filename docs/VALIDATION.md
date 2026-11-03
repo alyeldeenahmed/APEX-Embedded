@@ -61,3 +61,23 @@ No real MPU-6050 was connected. Fake-bus tests do not exercise ESP32 interrupts 
 the physical Wire transport. Pin defaults remain unassigned; axis confirmation
 defaults to false. Runtime reinitialization, clock accuracy and vehicle tests remain
 pending. Details and provisional bench policies are documented in IMU.md.
+
+## Milestone 4 — standalone bench implementation, 3 November 2026
+
+Run: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41684429013
+
+Tested implementation commit: `77a214ed6fe30d2ec71d7527d67dadffef41310d`.
+
+- 13 Python test methods passed, including recorder parsing and summary handling
+  of invalid values, resets, counter rollover, missing and held records.
+- 208 cross-language packet cases passed.
+- Expanded host IMU suite passed: startup timing, delayed retry, three-read-failure
+  recovery, initially missing device recovery, no-data watchdog and runtime audit,
+  in addition to prior conversion, clipping, axis and initialization checks.
+- Simulation, binary IMU and standalone CSV modes compiled for purchased N16R8.
+- CI uploaded the compiled standalone bench files as an artifact.
+
+GPIO8/9/4 now selected; vehicle orientation remains unconfirmed. No live sensor or
+COM-port capture ran. Monitor tests cover parsing/statistics, not physical USB.
+No measurements of interrupt latency, I2C timing, actual bias, reconnect, power or
+vehicle operation are claimed. Hardware tests and power identification are next.

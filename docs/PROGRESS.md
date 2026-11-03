@@ -2,6 +2,14 @@
 
 ## Completed in this workspace
 
+- Milestone 4: purchased N16R8 profile with GPIO8/9/4; nonblocking IMU startup,
+  retry/reinitialization, missing-data recovery and periodic register audit.
+- Standalone CSV mode, live recorder/offline summary and step-by-step bench guide.
+- All three N16R8 builds, 13 Python tests, 208 packet comparisons and expanded
+  host sensor/recovery tests passed. Compiled bench files available in CI artifacts.
+
+Milestone 4 evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41684429013
+
 - Reviewed the Control–Embedded preliminary interface v0.1 (26 October 2026)
   and Embedded–Perception interface v0.1 (1 November 2026).
 - Identified the Embedded team's scope: sensor acquisition, timestamps, transport,
@@ -43,14 +51,15 @@ Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/415235612
 
 ## Next milestones
 
-Milestone 3 bench software passed its host tests and dual firmware builds. Actual
-sensor operation, interrupt timing, pin mapping and orientation remain unverified.
+Milestone 4 software passed its host tests and three firmware builds. Actual
+sensor operation, interrupt timing, wiring and orientation remain unverified.
 The team leader confirmed Embedded ownership of acceleration-to-ESC conversion;
 the motor-control implementation remains outstanding.
 
 1. Confirm data/sync interoperability with Perception using known binary examples.
 2. Verify the purchased board against the compiled profile, upload and check serial timing.
-3. Configure and bench-test optional IMU mode; add sensor recovery and full startup behavior.
+3. Identify MPU breakout power circuit, wire selected pins and execute standalone
+   IMU_BENCH.md tests. Recovery code is implemented; physical recovery is unverified.
 4. Add shaft sensing and steering reporting after agreeing freshness semantics.
 5. Agree the Control command interface, then implement command and actuator handling.
 6. Run integration, timing and fault tests; publish measured results.

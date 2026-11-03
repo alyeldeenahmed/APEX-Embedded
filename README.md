@@ -2,10 +2,13 @@
 
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
-**Current milestone:** optional MPU-6050 bench acquisition integrated with telemetry.
-The build target is now the purchased ESP32-S3 DevKitC-1 N16R8, with standalone
-CSV recording, sensor recovery and selected GPIO8/9/4. See VALIDATION.md for results.
+**Current milestone:** standalone IMU software ready for physical bench verification.
+The purchased ESP32-S3 DevKitC-1 N16R8 profile compiles in all three modes.
+Thirteen Python tests, 208 packet comparisons and host IMU/recovery tests pass.
+GPIO8/9/4 are assigned; sensor power wiring awaits breakout identification.
 Actual sensor readings, hardware timing and actuator control remain unverified.
+
+[Milestone 4 passing builds, tests and bench binary artifact](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41684429013)
 
 [Milestone 3 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41682300906)
 
