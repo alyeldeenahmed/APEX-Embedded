@@ -35,7 +35,14 @@ jobs:
         run: |
           arduino-cli core update-index --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core install esp32:esp32@3.3.0 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-      - name: Compile N8R2 UART telemetry prototype
+      - name: Compile N16R8 UART telemetry prototype
         run: python tools/build_firmware.py
       - name: Compile MPU-6050 acquisition mode
         run: python tools/build_firmware.py --imu
+      - name: Compile standalone IMU bench mode
+        run: python tools/build_firmware.py --bench
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp32-s3-n16r8-imu-bench
+          path: build/imu-bench/
+          retention-days: 14

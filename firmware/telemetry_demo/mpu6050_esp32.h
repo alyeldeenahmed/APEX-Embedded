@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <esp_timer.h>
 #include "mpu6050.h"
+#include "imu_config.h"
 
 // Pins are deliberately not assigned until the actual board wiring is agreed.
 #ifndef APEX_IMU_SDA
@@ -24,6 +25,11 @@ namespace imu_board {
 constexpr imu::Axes axes={{0,1,2},{1,1,1}}; // Placeholder identity, NOT measured mounting.
 class WireBus {
  public:
+  bool recover() {
+    Wire.end();
+    if(!Wire.begin(APEX_IMU_SDA,APEX_IMU_SCL,400000)) return false;
+    Wire.setTimeOut(2); return true;
+  }
   bool write(uint8_t reg,uint8_t value) {
     Wire.beginTransmission(APEX_IMU_ADDRESS); Wire.write(reg); Wire.write(value);
     return Wire.endTransmission()==0;
@@ -36,7 +42,6 @@ class WireBus {
     for(size_t i=0;i<n;++i) out[i]=uint8_t(Wire.read());
     return true;
   }
-  void wait_ms(unsigned ms) { delay(ms); }
 };
 WireBus bus;
 imu::Mpu6050<WireBus> device(bus);
@@ -46,6 +51,7 @@ volatile uint32_t edge_count=0;
 uint32_t processed_edge=0;
 uint64_t first_sample_time=0;
 bool started=false, first_sample=false;
+uint32_t seen_generation=0, late_reads=0, ambiguous_reads=0, missed_edges=0;
 void ARDUINO_ISR_ATTR data_ready() {
   const uint64_t stamp=uint64_t(esp_timer_get_time());
   portENTER_CRITICAL_ISR(&mux);
@@ -56,27 +62,34 @@ bool begin() {
   if (APEX_IMU_SDA<0 || APEX_IMU_SCL<0 || APEX_IMU_INT<0 ||
       APEX_IMU_SDA==APEX_IMU_SCL || APEX_IMU_SDA==APEX_IMU_INT ||
       APEX_IMU_SCL==APEX_IMU_INT) return false;
-  if (!Wire.begin(APEX_IMU_SDA,APEX_IMU_SCL,400000)) return false;
-  Wire.setTimeOut(2); // Milliseconds; timing still needs measurement.
   pinMode(APEX_IMU_INT,INPUT);
   attachInterrupt(digitalPinToInterrupt(APEX_IMU_INT),data_ready,RISING);
-  started=device.begin();
-  return started;
+  device.start(uint64_t(esp_timer_get_time()));
+  started=true; return true;
 }
 void service() {
   if (!started) return;
+  const uint64_t now=uint64_t(esp_timer_get_time());
+  device.tick(now);
+  if(!device.ready()) return;
+  if(seen_generation!=device.generation()) {
+    seen_generation=device.generation(); first_sample=false;
+    portENTER_CRITICAL(&mux); processed_edge=edge_count; portEXIT_CRITICAL(&mux);
+    return;
+  }
   uint64_t stamp; uint32_t count;
   portENTER_CRITICAL(&mux); stamp=edge_time; count=edge_count; portEXIT_CRITICAL(&mux);
   if (count==processed_edge) return;
+  missed_edges+=uint32_t(count-processed_edge)-1;
   processed_edge=count;
-  const uint64_t now=uint64_t(esp_timer_get_time());
+  const uint64_t read_start=uint64_t(esp_timer_get_time());
   // Avoid labeling a much newer register sample with an old interrupt timestamp.
-  if (now<stamp || now-stamp>=1000) { device.invalidate(); return; }
+  if (read_start<stamp || read_start-stamp>=1000) { ++late_reads; device.invalidate(); return; }
   const bool captured=device.capture(stamp);
   uint32_t after;
   portENTER_CRITICAL(&mux); after=edge_count; portEXIT_CRITICAL(&mux);
   // If data-ready changed during the transaction, association is ambiguous.
-  if (after!=count) { device.invalidate(); return; }
+  if (after!=count) { ++ambiguous_reads; device.invalidate(); return; }
   if (captured && !first_sample) { first_sample=true; first_sample_time=stamp; }
 }
 bool fill(telemetry::Sample& packet,uint64_t now) {

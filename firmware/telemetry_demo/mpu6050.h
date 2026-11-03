@@ -3,7 +3,7 @@
 #include <stddef.h>
 
 // Sensor-only logic. Bus must implement read(reg, bytes, length), write(reg, value),
-// and wait_ms(ms). Arduino wiring is isolated in mpu6050_esp32.h.
+// and recover(). Arduino wiring is isolated in mpu6050_esp32.h.
 namespace imu {
 constexpr float kGravity = 9.80665f;
 constexpr float kRadiansPerDegree = 0.017453292519943295f;
@@ -55,39 +55,84 @@ inline Reading rotate(const Reading& r, const Axes& m) {
   }
   return out;
 }
+enum class State : uint8_t { Retry=0, ResetWait=1, WakeWait=2, Configure=3, Ready=4 };
+enum class Fault : uint8_t { None=0, Bus=1, Identity=2, Configuration=3, NoData=4 };
+struct Diagnostics {
+  uint32_t attempts=0, recoveries=0, read_errors=0, config_errors=0, no_data=0;
+  uint32_t samples=0, clipped=0;
+};
+inline uint8_t config_reg(unsigned i) {
+  const uint8_t regs[]={0x6C,0x6A,0x23,0x19,0x1A,0x1B,0x1C,0x37,0x38,0x6B};
+  return regs[i];
+}
+inline uint8_t config_value(unsigned i) {
+  const uint8_t values[]={0,0,0,0,3,0x10,0x08,0,1,1};
+  return values[i];
+}
 template<class Bus> class Mpu6050 {
  public:
   explicit Mpu6050(Bus& bus): bus_(bus) {}
-  bool begin() {
-    ready_=false; last_=Reading{};
-    if (!bus_.write(0x6B,0x80)) return false;
-    bus_.wait_ms(100);
-    uint8_t id=0;
-    if (!bus_.read(0x75,&id,1) || id!=0x68) return false;
-    if (!bus_.write(0x6B,0x01)) return false; // PLL X gyro, awake
-    bus_.wait_ms(100);
-    // Disable FIFO/DMP; all axes on; 1 kHz, gyro 42 Hz / accel 44 Hz DLPF;
-    // gyro +/-1000 deg/s, accel +/-4 g; active-high pulsed data-ready.
-    const uint8_t settings[][2]={{0x6C,0},{0x6A,0},{0x23,0},{0x19,0},
-      {0x1A,3},{0x1B,0x10},{0x1C,0x08},{0x37,0},{0x38,1}};
-    for (const auto& s:settings) {
-      uint8_t actual=0;
-      if (!bus_.write(s[0],s[1]) || !bus_.read(s[0],&actual,1) || actual!=s[1]) return false;
+  void start(uint64_t now) { state_=State::Retry; due_=now; invalidate(); }
+  // No delay calls: one bounded initialization step or audit per invocation.
+  void tick(uint64_t now) {
+    if(state_==State::Ready) {
+      if(now-last_read_>100000) { ++diag.no_data; fail(now,Fault::NoData); return; }
+      if(now>=audit_due_) {
+        uint8_t value=0;
+        if(!bus_.read(config_reg(audit_),&value,1)) { fail(now,Fault::Bus); return; }
+        if(value!=config_value(audit_)) { ++diag.config_errors; fail(now,Fault::Configuration); return; }
+        audit_=(audit_+1)%10; audit_due_=now+100000;
+      }
+      return;
     }
-    uint8_t power=0;
-    if (!bus_.read(0x6B,&power,1) || power!=1) return false;
-    ready_=true; return true;
+    if(now<due_) return;
+    if(state_==State::Retry) {
+      ++diag.attempts;
+      if(!bus_.recover() || !bus_.write(0x6B,0x80)) { fail(now,Fault::Bus); return; }
+      state_=State::ResetWait; due_=now+100000; return;
+    }
+    if(state_==State::ResetWait) {
+      uint8_t id=0;
+      if(!bus_.read(0x75,&id,1)) { fail(now,Fault::Bus); return; }
+      if(id!=0x68) { fail(now,Fault::Identity); return; }
+      if(!bus_.write(0x6B,1)) { fail(now,Fault::Bus); return; }
+      state_=State::WakeWait; due_=now+100000; return;
+    }
+    if(state_==State::WakeWait) { state_=State::Configure; config_=0; }
+    uint8_t value=0;
+    if(!bus_.write(config_reg(config_),config_value(config_)) ||
+       !bus_.read(config_reg(config_),&value,1)) { fail(now,Fault::Bus); return; }
+    if(value!=config_value(config_)) { ++diag.config_errors; fail(now,Fault::Configuration); return; }
+    if(++config_==10) {
+      state_=State::Ready; fault_=Fault::None; last_read_=now; audit_due_=now+100000;
+      audit_=0; failures_=0; if(generation_++) ++diag.recoveries;
+    }
   }
   bool capture(uint64_t stamp) {
-    if (!ready_) return false;
+    if (!ready()) return false;
     uint8_t bytes[14];
-    if (!bus_.read(0x3B,bytes,sizeof(bytes))) { invalidate(); return false; }
-    last_=convert(bytes,stamp); return true;
+    if (!bus_.read(0x3B,bytes,sizeof(bytes))) {
+      ++diag.read_errors; invalidate();
+      if(++failures_>=3) fail(stamp,Fault::Bus);
+      return false;
+    }
+    failures_=0; last_read_=stamp; ++diag.samples;
+    last_=convert(bytes,stamp); if(last_.clipped) ++diag.clipped;
+    return true;
   }
   void invalidate() { last_.valid=false; }
-  bool ready() const { return ready_; }
+  bool ready() const { return state_==State::Ready; }
+  State state() const { return state_; }
+  Fault fault() const { return fault_; }
+  uint32_t generation() const { return generation_; }
   const Reading& reading() const { return last_; }
+  Diagnostics diag;
  private:
-  Bus& bus_; bool ready_=false; Reading last_;
+  void fail(uint64_t now,Fault why) {
+    invalidate(); state_=State::Retry; fault_=why; due_=now+1000000;
+  }
+  Bus& bus_; Reading last_; State state_=State::Retry; Fault fault_=Fault::None;
+  uint64_t due_=0,last_read_=0,audit_due_=0;
+  unsigned config_=0,audit_=0,failures_=0; uint32_t generation_=0;
 };
 }

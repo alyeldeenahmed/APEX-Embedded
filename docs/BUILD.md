@@ -8,8 +8,8 @@ a board. It does not validate electrical signals, sensor acquisition or real tim
 The authoritative settings are in `firmware/build-config.json`:
 
 - Arduino CLI 1.3.1 and Espressif Arduino core 3.3.0.
-- Generic ESP32-S3, 8 MB flash, QSPI PSRAM enabled (planned N8R2).
-- 8 MB partition layout, QIO flash.
+- ESP32-S3 DevKitC-1 N16R8 (purchased): 16 MB flash, OPI PSRAM enabled.
+- app3M_fat9M_16MB partition layout, QIO flash.
 - USB CDC on boot disabled: `Serial` uses UART0 at 921600 baud.
 
 This is the initial bench build profile, not a claim that the final USB transport
@@ -26,10 +26,10 @@ python tools/build_firmware.py
 ```
 
 To compile the optional sensor mode, use `python tools/build_firmware.py --imu`.
-This still leaves physical pins unassigned and orientation unconfirmed. See IMU.md
-before preparing a hardware build. Simulation remains the default.
+Pins are GPIO8/9/4; orientation is unconfirmed. Use `--bench` for the standalone
+CSV test. See IMU_BENCH.md before wiring/upload. Simulation remains the default.
 
-Outputs go into ignored `build/esp32s3-n8r2/`. Firmware compilation is also run in
+Outputs go into ignored `build/simulation/`, `build/imu/` or `build/imu-bench/`. Compilation runs in
 GitHub Actions on pushes and pull requests. See the run for the relevant commit;
 a configuration file alone is not build evidence.
 

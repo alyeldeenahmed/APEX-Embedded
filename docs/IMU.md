@@ -2,7 +2,9 @@
 
 This is bench firmware, not an accepted vehicle interface. Simulation remains the
 default. MPU mode compiles separately with `python tools/build_firmware.py --imu`.
-No hardware pins are selected, no orientation is claimed and no actuators are driven.
+GPIO8/9/4 are selected for SDA/SCL/INT on the purchased DevKitC-1 N16R8.
+MPU breakout power wiring is awaiting identification. No vehicle orientation is
+claimed and no actuators are driven. See IMU_BENCH.md for the standalone workflow.
 
 ## Implemented behavior
 
@@ -30,8 +32,8 @@ No hardware pins are selected, no orientation is claimed and no actuators are dr
 ## Integration behavior and limitations
 
 Set APEX_USE_MPU6050=1 to select real acquisition code. APEX_IMU_SDA,
-APEX_IMU_SCL and APEX_IMU_INT default to -1, so initialization is disabled until
-wiring is explicitly configured. CI compiles this mode without assigning pins.
+APEX_IMU_SCL and APEX_IMU_INT use GPIO8/9/4 respectively, configured in imu_config.h.
+CI compiles with these pin assignments; their physical wiring remains to be tested.
 
 The intended acquisition is 1 kHz; the newest available reading is included at the
 100 Hz packet schedule. A timestamp represents data-ready, not transmission time;
@@ -48,9 +50,12 @@ A two-second calibrating flag window starts at the first unambiguous successful
 burst read. It does not estimate bias, check standstill or enforce physical immobility.
 Startup timing and motion prevention need agreement and implementation later.
 
-Initialization occurs once at boot. Failed initialization or lost configuration does
-not yet trigger automatic sensor reinitialization. Runtime configuration auditing,
-bus recovery, sensor reconnect tests and robust restart detection remain outstanding.
+Initialization and recovery now use a nonblocking state machine. Failed setup,
+three consecutive burst-read failures, >100 ms without capture, or configuration
+mismatch trigger a 1 s retry, I2C peripheral restart and sensor reconfiguration.
+One register is audited every 100 ms. Generation increments after each successful
+initialization, restarting the calibration flag window on the first associated sample.
+Physical recovery and reconnect behavior still require bench verification.
 There is no FIFO, measured timing evidence, live ROS bridge or fault acceptance claim.
 
 ## Verification
@@ -60,7 +65,7 @@ registers/readback, signed conversion and SI units, temperature exclusion, all g
 and accelerometer clipping rails, freshness boundaries, proper axis rotations,
 failed reads, recovery on a later read and failed initialization.
 
-CI builds both simulation and MPU-6050 modes for the planned ESP32-S3 N8R2 profile.
+CI builds simulation, binary IMU and standalone CSV modes for N16R8.
 Results are recorded in VALIDATION.md after the checks finish. Compiling the adapter
 does not prove interrupt/data alignment, I2C electrical behavior or real sampling.
 

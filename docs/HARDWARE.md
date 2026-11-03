@@ -5,9 +5,9 @@ procurement confirmation or an electrical compatibility sign-off.
 
 | Item | Planned part / arrangement | Outstanding detail |
 |---|---|---|
-| MCU | ESP32-S3 N8R2 development board | Not purchased when discussed; exact board/vendor and pinout pending |
+| MCU | ESP32-S3 DevKitC-1 N16R8 | Purchased, confirmed 3 November 2026; replaces planned N8R2 |
 | Main computer | Raspberry Pi 5 | RAM and power configuration unconfirmed |
-| IMU | MPU-6050 | Breakout version, settings and final wiring pending |
+| IMU | MPU-6050, purchased | Breakout power input unconfirmed; SDA GPIO8, SCL GPIO9, INT GPIO4 selected |
 | Speed sensing | Central longitudinal drivetrain shaft | TCRT5000 optical or A3144E Hall; no final sensor choice |
 | ESC | THW-1060-RTR, as supplied by team leader | Verify exact model, control pulse requirements and electrical levels |
 | Motor | Tamiya Torque Tuned 54358 | Installation and operating measurements deferred |

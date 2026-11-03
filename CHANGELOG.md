@@ -1,5 +1,13 @@
 # Change history
 
+## 0.4.0 — 2026-11-03 — standalone IMU bench package
+
+- Updated board to purchased ESP32-S3 DevKitC-1 N16R8; selected GPIO8/9/4.
+- Nonblocking sensor startup, retry/reinitialization, missing-data watchdog and
+  periodic configuration audit, with diagnostic counters and fault reporting.
+- Separate CSV bench mode, live recorder, offline summaries and monitor tests.
+- Standalone wiring/test guide; hardware verification remains pending.
+
 ## 0.3.0 — 2026-11-03 — MPU-6050 bench acquisition
 
 - Optional MPU-6050 mode with verified-register setup, burst reads, data-ready

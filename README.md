@@ -3,8 +3,8 @@
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
 **Current milestone:** optional MPU-6050 bench acquisition integrated with telemetry.
-Both simulation and IMU modes compile for the planned ESP32-S3 N8R2 profile.
-Nine Python tests, 208 packet comparisons and fake-bus IMU logic tests pass.
+The build target is now the purchased ESP32-S3 DevKitC-1 N16R8, with standalone
+CSV recording, sensor recovery and selected GPIO8/9/4. See VALIDATION.md for results.
 Actual sensor readings, hardware timing and actuator control remain unverified.
 
 [Milestone 3 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41682300906)
@@ -19,6 +19,7 @@ Actual sensor readings, hardware timing and actuator control remain unverified.
 - [Validation results](docs/VALIDATION.md)
 - [Build settings and packet compatibility checks](docs/BUILD.md)
 - [MPU-6050 acquisition prototype and remaining limitations](docs/IMU.md)
+- [Standalone IMU wiring and test procedure](docs/IMU_BENCH.md)
 - [Change history](CHANGELOG.md)
 
 Related team repositories:
@@ -62,7 +63,7 @@ is not paced in real time and does not establish hardware timing performance.
 ## ESP32 bench use (later)
 
 Install Arduino IDE and Espressif's ESP32 board support. Open the `telemetry_demo`
-sketch, select the exact ESP32-S3 board and its N8R2 memory settings, then build/upload.
+sketch, select the exact ESP32-S3 board and its N16R8 memory settings, then build/upload.
 The sketch uses `Serial` at 921600 baud and schedules data at 100 Hz and sync at 1 Hz.
 The USB/UART route depends on the board configuration and must be verified before use.
 The reproducible build profile now selects UART0 via a USB-to-UART bridge; see

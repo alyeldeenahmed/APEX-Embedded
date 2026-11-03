@@ -5,8 +5,17 @@
 #ifndef APEX_USE_MPU6050
 #define APEX_USE_MPU6050 0
 #endif
+#ifndef APEX_IMU_BENCH
+#define APEX_IMU_BENCH 0
+#endif
+#if APEX_IMU_BENCH && !APEX_USE_MPU6050
+#error Bench mode requires MPU-6050 mode
+#endif
 #if APEX_USE_MPU6050
 #include "mpu6050_esp32.h"
+#endif
+#if APEX_IMU_BENCH
+#include "imu_bench.h"
 #endif
 
 uint16_t sequence = 0;
@@ -14,6 +23,8 @@ bool first_packet = true;
 uint64_t next_data, next_sync;
 
 void setup() {
+  // Current build selects UART0 through the USB-to-UART connector.
+  Serial.setTxBufferSize(2048);
   Serial.begin(921600);
 #if APEX_USE_MPU6050
   imu_board::begin();
@@ -27,6 +38,9 @@ void loop() {
 #endif
   uint64_t now = uint64_t(esp_timer_get_time());
   if (now >= next_data) {
+#if APEX_IMU_BENCH
+    imu_bench::emit(now);
+#else
     telemetry::Sample sample = {};
     bool available=true;
 #if APEX_USE_MPU6050
@@ -43,10 +57,11 @@ void loop() {
       Serial.write(packet, sizeof(packet));
       first_packet = false;
     }
+#endif
     next_data += ((now - next_data) / 10000 + 1) * 10000;
   }
   now = uint64_t(esp_timer_get_time());
-  if (now >= next_sync) {
+  if (!APEX_IMU_BENCH && now >= next_sync) {
     uint8_t packet[14];
     telemetry::encode_sync(packet, now);
     Serial.write(packet, sizeof(packet));

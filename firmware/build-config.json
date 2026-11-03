@@ -1,8 +1,8 @@
 {
   "arduino_cli_version": "1.3.1",
   "arduino_esp32_core_version": "3.3.0",
-  "board": "Generic ESP32-S3 Dev Module, planned N8R2",
-  "fqbn": "esp32:esp32:esp32s3:FlashSize=8M,PartitionScheme=default_8MB,PSRAM=enabled,FlashMode=qio,USBMode=hwcdc,CDCOnBoot=default",
+  "board": "ESP32-S3 DevKitC-1 N16R8, purchased; generic ESP32S3 Dev Module build",
+  "fqbn": "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,FlashMode=qio,USBMode=hwcdc,CDCOnBoot=default",
   "transport": "UART0 through an external/on-board USB-to-UART bridge; 921600 baud",
   "hardware_verified": false
 }
