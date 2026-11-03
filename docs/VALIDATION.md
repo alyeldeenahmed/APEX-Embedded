@@ -44,3 +44,20 @@ flags are synthetic test inputs; the firmware demo still marks all readings inva
 
 GitHub Actions repeats Python tests, the host C++ comparison and the ESP32 build
 on pushes and pull requests. See BUILD.md for the settings and local commands.
+
+## Milestone 3 — MPU-6050 bench software, 3 November 2026
+
+Run: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41682300906
+
+Tested implementation commit: `eef0df3d32cddea15261cbb27c91a0b8be907697`.
+
+- Existing nine Python tests and 208 C++/Python packet cases passed.
+- New host C++ fake-bus suite passed: initialization/readback, signed SI conversion,
+  temperature exclusion, timestamps and freshness boundaries, proper rotations,
+  read failure/recovery, each gyro/accel clipping rail and initialization failures.
+- Both default simulation and optional MPU-6050 firmware modes compiled for ESP32-S3.
+
+No real MPU-6050 was connected. Fake-bus tests do not exercise ESP32 interrupts or
+the physical Wire transport. Pin defaults remain unassigned; axis confirmation
+defaults to false. Runtime reinitialization, clock accuracy and vehicle tests remain
+pending. Details and provisional bench policies are documented in IMU.md.

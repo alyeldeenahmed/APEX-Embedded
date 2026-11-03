@@ -25,6 +25,10 @@ arduino-cli core install esp32:esp32@3.3.0 --additional-urls https://espressif.g
 python tools/build_firmware.py
 ```
 
+To compile the optional sensor mode, use `python tools/build_firmware.py --imu`.
+This still leaves physical pins unassigned and orientation unconfirmed. See IMU.md
+before preparing a hardware build. Simulation remains the default.
+
 Outputs go into ignored `build/esp32s3-n8r2/`. Firmware compilation is also run in
 GitHub Actions on pushes and pull requests. See the run for the relevant commit;
 a configuration file alone is not build evidence.

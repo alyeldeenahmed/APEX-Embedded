@@ -15,6 +15,11 @@
 - Passed nine Python tests, eight fixed reference packets and 200 additional
   host C++/Python packet comparisons in GitHub Actions.
 - Published reusable packet vectors and a reproducible build guide.
+- Milestone 3: added MPU-6050 register setup/readback, burst acquisition, data-ready
+  timestamps, SI conversion, clipping/freshness logic and optional axis rotation.
+- Fake-bus sensor tests and both ESP32 firmware modes passed in GitHub Actions.
+
+Milestone 3 evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41682300906
 
 Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41523561273
 
@@ -38,14 +43,14 @@ Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/415235612
 
 ## Next milestones
 
-Milestone 3 software is in progress: sensor setup, burst reads, timestamps, SI
-conversion and validity logic added; host tests and dual firmware builds pending.
+Milestone 3 bench software passed its host tests and dual firmware builds. Actual
+sensor operation, interrupt timing, pin mapping and orientation remain unverified.
 The team leader confirmed Embedded ownership of acceleration-to-ESC conversion;
 the motor-control implementation remains outstanding.
 
 1. Confirm data/sync interoperability with Perception using known binary examples.
 2. Verify the purchased board against the compiled profile, upload and check serial timing.
-3. Replace simulated IMU readings with real sensor acquisition.
+3. Configure and bench-test optional IMU mode; add sensor recovery and full startup behavior.
 4. Add shaft sensing and steering reporting after agreeing freshness semantics.
 5. Agree the Control command interface, then implement command and actuator handling.
 6. Run integration, timing and fault tests; publish measured results.

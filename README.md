@@ -2,9 +2,12 @@
 
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
-**Current milestone:** simulated telemetry with a verified ESP32-S3 N8R2 build and
-host C++/Python packet interoperability. Nine Python tests and 208 cross-language
-packet cases pass. Hardware timing, real sensors and actuator control remain unverified.
+**Current milestone:** optional MPU-6050 bench acquisition integrated with telemetry.
+Both simulation and IMU modes compile for the planned ESP32-S3 N8R2 profile.
+Nine Python tests, 208 packet comparisons and fake-bus IMU logic tests pass.
+Actual sensor readings, hardware timing and actuator control remain unverified.
+
+[Milestone 3 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41682300906)
 
 [Milestone 2 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41523561273)
 
@@ -28,7 +31,8 @@ does not claim their interfaces have been jointly approved or physically integra
 
 ## Milestone 1: telemetry packet
 
-Status: software prototype. No hardware, actuator outputs or real sensor readings.
+Status: software prototype. No hardware tests or actuator outputs. The default mode
+uses simulated values; the optional IMU mode is documented in docs/IMU.md.
 
 This milestone implements the 54-byte data frame in the Perception v0.1 agreement.
 The ESP32 sketch sends simulated values for bench development only. All sensor-valid
@@ -104,7 +108,7 @@ Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
 
 ## Remaining work
 
-Run on the selected board; verify 100 Hz timing under load; add actual
-IMU data-ready acquisition, independent encoder capture and honest freshness flags;
+Run on the selected board; verify 100 Hz timing under load and the new
+IMU acquisition path; add independent encoder capture and wheel/steering freshness;
 agree startup/calibration behavior and sync CRC; agree Control's command protocol.
 Actuator control is intentionally not implemented in this milestone.
