@@ -1,4 +1,4 @@
-# Progress — 2 November 2026
+# Progress — 3 November 2026
 
 ## Completed in this workspace
 
@@ -21,7 +21,7 @@ Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/415235612
 ## Not yet completed
 
 - ESP32 flashing or real-board testing.
-- Actual MPU-6050 acquisition and data-ready interrupt timestamps.
+- MPU-6050 hardware validation (new software prototype described in IMU.md).
 - Shaft pulse capture, speed calculation and direction detection.
 - Steering measurement or commanded-angle reporting from a real actuator path.
 - Control command schema, parsing, acknowledgement or actuator execution.
@@ -37,6 +37,11 @@ Evidence: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/415235612
 | Control | MPC/planning, higher-level safety decisions and interpretation of execution reports |
 
 ## Next milestones
+
+Milestone 3 software is in progress: sensor setup, burst reads, timestamps, SI
+conversion and validity logic added; host tests and dual firmware builds pending.
+The team leader confirmed Embedded ownership of acceleration-to-ESC conversion;
+the motor-control implementation remains outstanding.
 
 1. Confirm data/sync interoperability with Perception using known binary examples.
 2. Verify the purchased board against the compiled profile, upload and check serial timing.

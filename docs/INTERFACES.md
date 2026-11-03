@@ -37,7 +37,10 @@ Perception must confirm the CRC coverage and timestamp sampling semantics.
 
 The model outputs steering angle in radians and longitudinal acceleration request
 in m/s². This does not establish an ESC pulse, throttle percentage or desired-speed
-wire interface. Agree conversion ownership before implementing motor control.
+wire interface. On 3 November 2026 the Embedded team leader confirmed that
+**Embedded owns converting the acceleration request into motor/ESC commands**.
+The conversion algorithm, calibration, feedback strategy and limits are not yet
+implemented. This ownership decision does not imply Control will send desired speed.
 
 Agree command fields/units, transmission rate, identity/session rules, expiry,
 queue/replacement behavior, acknowledgements, cancellation and restart handling.

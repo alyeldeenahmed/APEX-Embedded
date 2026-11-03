@@ -1,5 +1,14 @@
 # Change history
 
+## 0.3.0 — 2026-11-03 — MPU-6050 bench acquisition
+
+- Optional MPU-6050 mode with verified-register setup, burst reads, data-ready
+  timestamps, SI conversion, clipping/freshness checks and axis-map validation.
+- Fake-bus tests and separate ESP32 compilation for sensor mode.
+- Unassigned pins and unconfirmed orientation keep hardware use explicit.
+- Recorded Embedded ownership of acceleration-to-motor conversion.
+- Hardware timing, sensor recovery and full startup integration remain pending.
+
 ## 0.2.0 — 2026-11-02 — build and interoperability checks
 
 - Pinned ESP32-S3 N8R2 bench build configuration (Arduino core 3.3.0).

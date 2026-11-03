@@ -15,6 +15,7 @@ packet cases pass. Hardware timing, real sensors and actuator control remain unv
 - [Interface decisions and open questions](docs/INTERFACES.md)
 - [Validation results](docs/VALIDATION.md)
 - [Build settings and packet compatibility checks](docs/BUILD.md)
+- [MPU-6050 acquisition prototype and remaining limitations](docs/IMU.md)
 - [Change history](CHANGELOG.md)
 
 Related team repositories:

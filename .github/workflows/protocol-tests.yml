@@ -16,6 +16,10 @@ jobs:
       - run: python -m unittest -v
       - name: Compile host encoder and compare with Python
         run: python tools/check_cpp_packets.py
+      - name: Compile and run MPU-6050 logic tests
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -I. tests/test_mpu6050.cpp -o /tmp/test_mpu6050
+          /tmp/test_mpu6050
 
   esp32-build:
     runs-on: ubuntu-latest
@@ -33,3 +37,5 @@ jobs:
           arduino-cli core install esp32:esp32@3.3.0 --additional-urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
       - name: Compile N8R2 UART telemetry prototype
         run: python tools/build_firmware.py
+      - name: Compile MPU-6050 acquisition mode
+        run: python tools/build_firmware.py --imu
