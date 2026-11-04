@@ -51,6 +51,13 @@ jobs:
         run: python tools/build_firmware.py --bench
       - name: Compile integrated vehicle firmware
         run: python tools/build_firmware.py --vehicle
+      - name: Compile planned 200 Hz IMU telemetry profile
+        run: python tools/build_firmware.py --vehicle --telemetry-hz 200
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp32-s3-n16r8-vehicle-200hz
+          path: build/vehicle-200hz/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: esp32-s3-n16r8-vehicle

@@ -63,7 +63,7 @@ def status(p):
 
 class Stream:
     """Demultiplex telemetry, sync and control status without stealing payload bytes."""
-    lengths = {1: 54, 2: 14, 0x11: 64}
+    lengths = {1: 54, 2: 14, 3: 42, 0x11: 64}
 
     def __init__(self):
         self.buffer = bytearray()

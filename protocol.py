@@ -38,6 +38,12 @@ def sync_packet(timestamp):
     return frame(struct.pack("<BBQ", 2, 1, timestamp))
 
 
+def timing_packet(seq,report_us,imu_us,wheel_us,steering_us,present=0):
+    if present & ~7: raise ValueError('Reserved presence flags')
+    return frame(struct.pack('<BBHBB4Q',3,1,seq&0xffff,present,0,
+                             report_us,imu_us,wheel_us,steering_us))
+
+
 class Decoder:
     def __init__(self):
         self.buffer = bytearray()
@@ -56,11 +62,11 @@ class Decoder:
             if len(self.buffer) < 4:
                 break
             kind, version = self.buffer[2:4]
-            if kind not in (1, 2) or version != 1:
+            if kind not in (1, 2, 3, 0x11) or version != 1:
                 self.header_errors += 1
                 del self.buffer[0]
                 continue
-            size = 54 if kind == 1 else 14
+            size = {1:54,2:14,3:42,0x11:64}[kind]
             if len(self.buffer) < size:
                 break
             packet = bytes(self.buffer[:size])
@@ -69,6 +75,19 @@ class Decoder:
                 del self.buffer[0]
                 continue
             del self.buffer[:size]
+            if kind == 0x11:
+                from control_link import status
+                try: result.append(dict(type='status',**status(packet)))
+                except ValueError: self.header_errors+=1
+                continue
+            if kind == 3:
+                _,_,seq,present,reserved,*times=struct.unpack('<BBHBB4Q',packet[2:-2])
+                if reserved or present&~7:
+                    self.header_errors+=1
+                    continue
+                result.append(dict(type='timing',seq=seq,present=present,
+                    **dict(zip(('report_us','imu_us','wheel_us','steering_us'),times))))
+                continue
             if kind == 2:
                 result.append({"type": "sync", "t_esp_us": struct.unpack_from("<Q", packet, 4)[0]})
                 continue

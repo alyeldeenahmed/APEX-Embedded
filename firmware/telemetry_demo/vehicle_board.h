@@ -33,7 +33,7 @@ struct WheelState {
   float speed=0; bool valid=false,initialized=false;
   void capture(uint64_t now) {
     uint32_t n,e;
-    portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;portEXIT_CRITICAL(&mux);
+    portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;now=uint64_t(esp_timer_get_time());portEXIT_CRITICAL(&mux);
     const uint32_t delta=n-count;
     const int64_t signed_delta=encoder_math::difference(n,count);
     valid=initialized && now>stamp && now-stamp<=25000 && e==errors && wheel_confirmed &&
@@ -48,6 +48,7 @@ class Driver {
   static bool pulse_ok(float p) { return isfinite(p)&&p>=500&&p<=2500; }
   static bool pulse(int pin,float us) { return ledcWrite(pin,uint32_t(us*pwm_hz*16383.0f/1e6f+0.5f)); }
 public:
+  uint64_t last_write=0;
   bool physical() const { return outputs_enabled&&attached_&&!failed_; }
   bool ready() const { return !outputs_enabled || physical(); }
   void begin() {
@@ -71,6 +72,7 @@ public:
     const float s=servo_center_us+fabsf(angle)/c.max_angle*((angle>=0?servo_left_us:servo_right_us)-servo_center_us);
     const float e=esc_neutral_us+fabsf(effort)*((effort>=0?esc_drive_us:esc_brake_us)-esc_neutral_us);
     const bool ok=pulse(servo,s)&pulse(esc,e);
+    if(ok) last_write=uint64_t(esp_timer_get_time());
     if(!ok) { pulse(servo,servo_center_us);pulse(esc,esc_neutral_us);failed_=true; }
     return ok;
   }
@@ -119,6 +121,7 @@ void service() {
   now=uint64_t(esp_timer_get_time());
   if(now>=next_tick) {
     wheel.capture(now);
+    now=uint64_t(esp_timer_get_time());
     if(engine->tick(now,healthy(now),driver)) status(now);
     next_tick=now+10000; // Skip late releases; never replay catch-up commands.
   }
@@ -135,7 +138,9 @@ void fill(telemetry::Sample& s,uint64_t now) {
   const uint64_t age=now>=wheel.stamp?now-wheel.stamp:65535;
   s.wheel_age=uint16_t(age>65535?65535:age);
   if(wheel.valid&&age<=25000) s.flags|=2;
-  s.steering=engine->output.steering;s.steer_age=0;
+  s.steering=engine->output.steering;
+  const uint64_t steer_age=driver.last_write&&now>=driver.last_write?now-driver.last_write:65535;
+  s.steer_age=uint16_t(steer_age>65535?65535:steer_age);
   if(driver.physical()&&engine->output.enabled) s.flags|=4;
   // Never set measured-steering or standstill from an unobservable condition.
 }

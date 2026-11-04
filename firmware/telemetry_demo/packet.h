@@ -30,6 +30,16 @@ struct Sample {
   uint16_t wheel_age, steer_age;
   uint8_t flags;
 };
+// Companion to type 01. Independent acquisition times are essential when the
+// IMU is held/invalid but wheel samples continue. This is an interface extension.
+inline void encode_timing(uint8_t* p,uint16_t seq,uint8_t present,uint64_t report,
+                          uint64_t imu,uint64_t wheel,uint64_t steering) {
+  memset(p,0,42);p[0]=0xa5;p[1]=0x5a;p[2]=3;p[3]=1;
+  u16(p+4,seq);p[6]=present&7;
+  const uint64_t stamps[]={report,imu,wheel,steering};
+  for(unsigned j=0;j<4;++j) for(unsigned i=0;i<8;++i) p[8+8*j+i]=uint8_t(stamps[j]>>(8*i));
+  u16(p+40,crc(p+2,38));
+}
 inline void encode(uint8_t* p, uint16_t seq, const Sample& s) {
   memset(p, 0, 54);
   p[0] = 0xa5; p[1] = 0x5a; p[2] = 1; p[3] = 1;

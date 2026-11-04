@@ -7,6 +7,11 @@ force / modeled mass in m/s². Embedded converts these into actuator signals.
 
 ## Transport and ownership
 
+Integrated telemetry now also includes a paired 42-byte type-03 timing companion.
+See STATE_V04_REVIEW.md. Receivers must support this extension. Raw-sensor validity
+does not authorize driving in state DEGRADED/LOST; Control/Safety must enforce its
+accepted state contract independently of the MCU command deadline.
+
 921600 baud, 8N1, ESP UART0 via COM USB connector. Full duplex. One Pi process must
 own this port and demultiplex telemetry (01), sync (02), and status (11 hex).
 The existing 54-byte telemetry and 14-byte sync frames retain their formats.

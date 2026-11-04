@@ -3,6 +3,11 @@
 #include <Arduino.h>
 #include <esp_timer.h>
 #include "packet.h"
+#ifndef APEX_TELEMETRY_HZ
+#define APEX_TELEMETRY_HZ 100
+#endif
+static_assert(APEX_TELEMETRY_HZ==100 || APEX_TELEMETRY_HZ==200,"Supported telemetry rates: 100 or 200 Hz");
+constexpr uint64_t data_period=1000000/APEX_TELEMETRY_HZ;
 #ifndef APEX_VEHICLE
 #define APEX_VEHICLE 0
 #endif
@@ -70,8 +75,18 @@ void loop() {
 #endif
     if(available) {
       if(first_packet) sample.flags|=0x40;
-      uint8_t packet[54];
-      telemetry::encode(packet, sequence++, sample);
+#if APEX_VEHICLE
+      uint8_t packet[96]; // Queue data + timing together, with the same sequence.
+      telemetry::encode(packet,sequence,sample);
+      const auto& reading=imu_board::device.reading();
+      const uint8_t present=(reading.present?1:0)|(vehicle_board::wheel.initialized?2:0)|
+        (vehicle_board::driver.last_write?4:0);
+      telemetry::encode_timing(packet+54,sequence,present,now,
+        reading.present?reading.timestamp:0,vehicle_board::wheel.stamp,vehicle_board::driver.last_write);
+      ++sequence;
+#else
+      uint8_t packet[54];telemetry::encode(packet,sequence++,sample);
+#endif
       if(Serial.availableForWrite()>=int(sizeof(packet))) {
         Serial.write(packet, sizeof(packet));first_packet=false;
       }
@@ -80,7 +95,7 @@ void loop() {
 #endif
     }
 #endif
-    next_data += ((now - next_data) / 10000 + 1) * 10000;
+    next_data += ((now - next_data) / data_period + 1) * data_period;
   }
   now = uint64_t(esp_timer_get_time());
   if (!APEX_IMU_BENCH && now >= next_sync) {

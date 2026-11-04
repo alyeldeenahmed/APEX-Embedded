@@ -32,6 +32,12 @@ indistinguishable from zero speed; valid count sampling is not a sensor-health p
 
 ## Perception contract clarification
 
+State v0.4 review: integrated frames now carry a type-03 companion with independent
+report/IMU/wheel/steering timestamps; see STATE_V04_REVIEW.md. Test this extension
+with Perception before deployment. Add real dropout/recovery/backlog tests and
+confirm the ten-sample/AMCL trust gates on the Pi. A 200 Hz telemetry build is
+available; the following 100 Hz timing refers to the retained default profile.
+
 Telemetry target remains 100 Hz at standstill and during sensor failure; missed
 serial writes increment sequence/drop counters rather than blocking execution.
 IMU timestamps stay acquisition-relative after the first sample. Before acquisition,

@@ -2,6 +2,10 @@
 
 ## Current software scope
 
+State v0.4 review added independent timestamp companions, raw-event deduplication
+and an optional 200 Hz build. See STATE_V04_REVIEW.md for changes, compatibility
+requirements and Pi-owned dropout/trust behavior. Hardware validation is still pending.
+
 Integrated `--vehicle` mode connects sensor acquisition, shaft GPIO capture,
 wheel estimator, 100 Hz telemetry, mixed serial command transport, boot/session/
 epoch checks, replay/expiry handling, explicit arm, cancel/revoke, result/status

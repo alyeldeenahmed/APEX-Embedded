@@ -47,7 +47,7 @@ class ProtocolTests(unittest.TestCase):
     def test_bad_header_and_truncation(self):
         d = Decoder()
         packet = data_packet(5, 20)
-        self.assertEqual(d.feed(b"\xa5\x5a\x03\x01" + packet[:20]), [])
+        self.assertEqual(d.feed(b"\xa5\x5a\x7f\x01" + packet[:20]), [])
         self.assertEqual(d.feed(packet[20:])[0]["seq"], 5)
         self.assertEqual(d.header_errors, 1)
 

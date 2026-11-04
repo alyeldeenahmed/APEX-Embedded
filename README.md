@@ -26,6 +26,12 @@ provide measured direction; signed validity requires the documented quadrature s
 
 ## Team handover
 
+- [State contract v0.4 review, timing extension and ownership](docs/STATE_V04_REVIEW.md)
+- Integrated telemetry includes paired independent 64-bit sensor timestamps;
+  `sensor_events.py` supplies raw, deduplicated events for the Pi bridge.
+- Optional planned-rate build: `python tools/build_firmware.py --vehicle --telemetry-hz 200`.
+  Default remains 100 Hz; wheel acquisition is 100 Hz. Neither rate is physically validated.
+
 - [Progress and next milestones](docs/PROGRESS.md)
 - [Planned hardware baseline](docs/HARDWARE.md)
 - [Interface decisions and open questions](docs/INTERFACES.md)

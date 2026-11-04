@@ -40,11 +40,11 @@ The intended acquisition is 1 kHz; the newest available reading is included at t
 sensor filtering still introduces physical delay. The main-loop acquisition path
 does not guarantee that every internal sample is read under load.
 
-No data packet is fabricated before a first burst reading. Sync frames may still
-be sent. After a first reading, telemetry continues even if it becomes invalid or
-stale; held values keep their original sample timestamp. Wheel and steering validity
-remain false. This bench behavior is not the final startup contract requiring all
-sensors to be initialized. The Pi must not treat sync-only traffic as valid IMU data.
+Telemetry continues before the first reading with IMU-valid false; its legacy
+timestamp is then report time. After acquisition, held values retain their original
+sample timestamp. Integrated vehicle mode pairs data with independent 64-bit source
+times and presence flags (STATE_V04_REVIEW.md). Wheel data can continue independently.
+The Pi must never treat invalid or duplicate held IMU values as fresh observations.
 
 A two-second calibrating flag window starts at the first unambiguous successful
 burst read. It does not estimate bias, check standstill or enforce physical immobility.

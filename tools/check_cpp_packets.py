@@ -10,10 +10,13 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from protocol import Decoder, data_packet, sync_packet
+from protocol import Decoder, data_packet, sync_packet, timing_packet
 
 
 def command(case):
+    if case['type']=='timing':
+        v=case['values']
+        return 'T '+' '.join(str(v[k]) for k in ('seq','present','report_us','imu_us','wheel_us','steering_us'))
     if case["type"] == "sync":
         return f"S {case['timestamp']}"
     v = case["values"]
@@ -38,6 +41,10 @@ def main():
             ticks=rng.randint(-2**31, 2**31-1), speed=rng.randint(-100, 100) / 8,
             wheel_age=rng.randrange(65536), steering=rng.randint(-8, 8) / 16,
             steer_age=rng.randrange(65536))))
+    for i in range(100):
+        cases.append(dict(name=f'timing-{i}',type='timing',values=dict(seq=rng.randrange(65536),
+            present=rng.randrange(8),report_us=rng.randrange(2**64),imu_us=rng.randrange(2**64),
+            wheel_us=rng.randrange(2**64),steering_us=rng.randrange(2**64))))
     with tempfile.TemporaryDirectory() as tmp:
         exe = Path(tmp) / ("packet_probe.exe" if os.name == "nt" else "packet_probe")
         subprocess.run([compiler, "-std=c++11", "-Wall", "-Wextra", "-Werror", "-I", str(ROOT),
@@ -49,7 +56,7 @@ def main():
         raise AssertionError("Host encoder returned wrong frame count")
     for case, line in zip(cases, lines):
         cpp = bytes.fromhex(line)
-        py = sync_packet(case["timestamp"]) if case["type"] == "sync" else data_packet(**case["values"])
+        py = sync_packet(case["timestamp"]) if case["type"] == "sync" else (timing_packet(**case['values']) if case['type']=='timing' else data_packet(**case["values"]))
         if cpp != py:
             raise AssertionError(f"C++/Python mismatch: {case['name']}")
         if "hex" in case and cpp.hex() != case["hex"]:
@@ -60,7 +67,7 @@ def main():
             decoded += d.feed(cpp[offset:offset+7])
         if len(decoded) != 1 or d.crc_errors or d.buffer:
             raise AssertionError(f"Decoder rejected firmware frame: {case['name']}")
-    print(f"PASS: {golden_count} fixed vectors + 200 seeded cases; C++/Python bytes match; decoder accepts all frames.")
+    print(f"PASS: {golden_count} fixed vectors + 200 data + 100 timing cases; C++/Python bytes match; decoder accepts all frames.")
 
 
 if __name__ == "__main__":

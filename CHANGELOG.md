@@ -44,3 +44,13 @@
   endpoint tests, integrated ESP32 build and hardware handover plan.
 - No hardware validation or joint interface approval is claimed.
 
+# 4 November 2026 — State v0.4 alignment
+
+- Reviewed supplied IMU-dropout state contract; kept EKF/trust/AMCL policy on Pi.
+- Added paired type-03 independent sensor timestamps for unambiguous wheel-driven
+  prediction during IMU dropout; new wire extension requires bridge agreement.
+- Added raw event adapter suppressing invalid/duplicate IMU observations, preserving
+  source and receipt provenance, and resetting on boot identity changes.
+- Added selectable 200 Hz telemetry build, retaining independent 100 Hz wheel capture.
+- Added dropout, cadence, rollover, orphan and timestamp tests and timing byte comparisons.
+

@@ -1,8 +1,15 @@
 #include "firmware/telemetry_demo/vehicle_core.h"
 #include "firmware/telemetry_demo/encoder_math.h"
+#include "firmware/telemetry_demo/packet.h"
 #include <cassert>
 #include <limits>
 int main() {
+  uint8_t timing[42];
+  telemetry::encode_timing(timing,65535,3,0x100000020ULL,0xfffffff0ULL,0x100000010ULL,0);
+  assert(timing[2]==3 && timing[4]==255 && timing[5]==255 && timing[6]==3);
+  assert(timing[8]==32 && timing[12]==1 && timing[16]==240 && timing[20]==0);
+  assert(timing[24]==16 && timing[28]==1);
+  assert(telemetry::crc(timing+2,38)==(uint16_t(timing[40])|uint16_t(timing[41])<<8));
   const uint8_t cycle[]={0,1,3,2,0};
   for(unsigned i=0;i<4;++i) {
     assert(encoder_math::transition(cycle[i],cycle[i+1])==1);

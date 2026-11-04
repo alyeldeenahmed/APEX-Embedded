@@ -2,6 +2,10 @@
 
 ## Source basis
 
+The supplied State Contract v0.4 IMU-dropout draft has now been reviewed.
+STATE_V04_REVIEW.md records required Embedded changes and Pi-owned decisions;
+its timing extension supersedes the earlier ambiguous wheel-age reconstruction.
+
 - Control–Embedded preliminary interface v0.1, 26 October 2026.
 - Embedded–Perception interface agreement v0.1, 1 November 2026.
 

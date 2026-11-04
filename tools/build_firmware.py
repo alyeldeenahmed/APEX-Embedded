@@ -12,13 +12,15 @@ mode.add_argument('--imu',action='store_true',help='Binary telemetry with MPU-60
 mode.add_argument('--bench',action='store_true',help='Standalone CSV IMU test, no binary packets')
 mode.add_argument('--vehicle',action='store_true',help='Integrated IMU, encoder, command endpoint; outputs disabled by default')
 parser.add_argument('--address',choices=['0x68','0x69'],default='0x68')
+parser.add_argument('--telemetry-hz',type=int,choices=[100,200],default=100)
 args=parser.parse_args()
-flags=f'-DAPEX_IMU_ADDRESS={args.address}'
+flags=f'-DAPEX_IMU_ADDRESS={args.address} -DAPEX_TELEMETRY_HZ={args.telemetry_hz}'
 if args.imu or args.bench or args.vehicle: flags+=' -DAPEX_USE_MPU6050=1'
 if args.vehicle: flags+=' -DAPEX_VEHICLE=1'
 if args.bench: flags+=' -DAPEX_IMU_BENCH=1'
 extra=['--build-property','build.extra_flags='+flags]
 output='vehicle' if args.vehicle else ('imu-bench' if args.bench else ('imu' if args.imu else 'simulation'))
+if args.telemetry_hz!=100: output+=f'-{args.telemetry_hz}hz'
 subprocess.run(["arduino-cli", "compile", "--fqbn", config["fqbn"], *extra,
                 "--warnings", "all", "--output-dir", str(ROOT / 'build' / output),
                 str(ROOT / "firmware/telemetry_demo")], check=True)
