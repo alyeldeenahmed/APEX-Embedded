@@ -44,7 +44,10 @@ void loop() {
     telemetry::Sample sample = {};
     bool available=true;
 #if APEX_USE_MPU6050
-    available=imu_board::fill(sample,now);
+    // Missing IMU data must not suppress the independent transport heartbeat.
+    // Before first acquisition the timestamp is a report time and IMU-valid is 0.
+    sample.timestamp=uint32_t(now);
+    imu_board::fill(sample,now);
 #else
     sample.timestamp = uint32_t(now);
     sample.accel[2] = 9.80665f;

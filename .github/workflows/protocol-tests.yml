@@ -20,6 +20,10 @@ jobs:
         run: |
           g++ -std=c++11 -Wall -Wextra -Werror -I. tests/test_mpu6050.cpp -o /tmp/test_mpu6050
           /tmp/test_mpu6050
+      - name: Compile and run vehicle core tests
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -I. tests/test_vehicle.cpp -o /tmp/test_vehicle
+          /tmp/test_vehicle
 
   esp32-build:
     runs-on: ubuntu-latest
