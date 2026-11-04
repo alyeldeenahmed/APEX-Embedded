@@ -44,6 +44,9 @@ creation and no more than 100 ms later. Deadline must be strictly after arrival,
 at most 100 ms ahead, and after creation. These are provisional local bounds.
 Pi must account conservatively for clock-map uncertainty and transport delay.
 Future scheduled commands are rejected; no queue of trajectories is accepted.
+Suggested initial Pi SET rate is 50 Hz with a <=100 ms authority horizon, subject
+to joint review and measured transport jitter. The MCU does not invent commands
+when the Pi falls silent.
 
 Matching-boot requests consume a fresh sequence even when subsequently rejected.
 Fresh means modular difference in [1, 2^31-1]; gaps are allowed. CRC-invalid frames
@@ -57,7 +60,8 @@ enforces replay rejection. CRC and boot nonce do not authenticate a sender.
 1. Wait for status containing boot nonce and boot time (sent every 100 ms).
 2. INSTALL a nonzero session/epoch. It disarms, clears pending output and held ID,
    then reports INSTALLED after the driver is serviced. Same-session epoch must
-   strictly increase while installed. All session changes retain global sequence.
+   strictly increase even after revocation. New session numbers must increase
+   (no session/epoch wrap within one boot). All session changes retain global sequence.
 3. ARM explicitly at zero steering/acceleration. It requires confirmed calibration,
    valid forward-direction wheel feedback, driver readiness and task-watchdog setup.
 4. SET replaces the requested output. The service loop applies it immediately after

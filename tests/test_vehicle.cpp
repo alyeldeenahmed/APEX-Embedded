@@ -1,7 +1,18 @@
 #include "firmware/telemetry_demo/vehicle_core.h"
+#include "firmware/telemetry_demo/encoder_math.h"
 #include <cassert>
 #include <limits>
 int main() {
+  const uint8_t cycle[]={0,1,3,2,0};
+  for(unsigned i=0;i<4;++i) {
+    assert(encoder_math::transition(cycle[i],cycle[i+1])==1);
+    assert(encoder_math::transition(cycle[i+1],cycle[i])==-1);
+    assert(encoder_math::transition(cycle[i],cycle[i])==0);
+  }
+  assert(encoder_math::transition(0,3)==2);
+  assert(encoder_math::transition(1,2)==2);
+  assert(encoder_math::difference(1,0xffffffffu)==2);
+  assert(encoder_math::difference(0xffffffffu,1)==-2);
   vehicle::Wheel w;
   w.update(0,10000,0.01f,true); assert(!w.valid);
   w.update(0,20000,0.01f,true); assert(w.valid && w.speed==0);

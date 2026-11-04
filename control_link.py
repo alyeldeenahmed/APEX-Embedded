@@ -8,7 +8,6 @@ import math
 import struct
 import time
 import json
-from dataclasses import dataclass
 
 
 def crc(data):
@@ -109,6 +108,7 @@ def main():
     parser = Stream()
     sent = False
     sent_boot = None
+    sent_sequence = None
     end = time.monotonic() + args.seconds
     # Opening the port may reset this board. Wait for its own boot status.
     with serial.Serial(args.port, 921600, timeout=.01, write_timeout=.1) as port:
@@ -129,10 +129,12 @@ def main():
                                     target=args.target, steering=args.steering,
                                     acceleration=args.acceleration, created_us=s['now_us'],
                                     deadline_us=s['now_us']+80000)
-                    port.write(packet)
+                    if port.write(packet) != len(packet):
+                        raise SystemExit('Partial command write; outcome unknown. No retry.')
                     sent = True
                     sent_boot = s['boot']
-                elif sent and s['command_id'] == args.id:
+                    sent_sequence = (s['sequence']+1)&0xffffffff
+                elif sent and s['command_id'] == args.id and s['sequence'] == sent_sequence:
                     return
     if args.action:
         raise SystemExit('No matching acknowledgement; outcome unknown. No retry.')

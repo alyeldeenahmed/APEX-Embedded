@@ -36,7 +36,8 @@ public:
     if(r.action!=control_wire::Set && (r.steering!=0||r.acceleration!=0)) return code=BadValue;
     if(r.action==control_wire::Install) {
       if(!r.session||!r.epoch) return code=BadContext;
-      if(installed_ && r.session==session_ && r.epoch<=epoch_) return code=BadContext;
+      // Revocation must not allow an older authorization context to be reinstalled.
+      if(session_ && (r.session<session_ || (r.session==session_ && r.epoch<=epoch_))) return code=BadContext;
       stop(); held_=0; session_=r.session; epoch_=r.epoch; installed_=true;
       return code=Installed;
     }

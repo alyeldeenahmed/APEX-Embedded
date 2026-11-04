@@ -40,6 +40,19 @@ int main() {
   assert(e.tick(100001,false,d));assert(e.code==Fault&&!d.last.enabled);
   r.sequence++;r.action=Arm;assert(e.receive(r,100002,false)==NotReady);
   r.sequence++;r.boot=43;assert(e.receive(r,100002,true)==BadBoot);
+  r.boot=42;r.sequence++;r.action=Revoke;
+  assert(e.receive(r,100003,true)==Revoked);
+  r.sequence++;r.action=Install;
+  assert(e.receive(r,100004,true)==BadContext); // revoked epoch cannot be revived
+  r.sequence++;r.epoch++;
+  assert(e.receive(r,100005,true)==Installed);
+  r.sequence++;r.action=Arm;
+  assert(e.receive(r,100006,true)==Accepted);
+  r.sequence++;r.action=Cancel;r.target=r.id;
+  assert(e.receive(r,100007,true)==Cancelled); // pending, before driver tick
+  assert(!e.armed());
+  r.sequence++;r.action=Arm;assert(e.receive(r,100008,true)==Accepted);
+  d.ok=false;assert(e.tick(100009,true,d)&&e.code==Fault&&!e.armed());
   // Parser supports fragmentation, CRC rejection, arbitrary garbage and recovery.
   uint8_t p[64]={0xa5,0x5a,0x10,1,1};telemetry::u32(p+8,42);
   telemetry::u16(p+62,telemetry::crc(p+2,60));Parser parser;Request parsed{};

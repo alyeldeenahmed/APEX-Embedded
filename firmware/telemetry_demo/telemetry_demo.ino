@@ -1,4 +1,5 @@
-// BENCH ONLY: simulation by default; optional MPU-6050 mode. No actuator outputs.
+// Simulation by default; optional IMU bench and integrated vehicle modes.
+// Vehicle outputs require explicit confirmed calibration in vehicle_config.h.
 #include <Arduino.h>
 #include <esp_timer.h>
 #include "packet.h"

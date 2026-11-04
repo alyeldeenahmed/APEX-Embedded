@@ -6,6 +6,7 @@
 #include <esp_task_wdt.h>
 #include "vehicle_config.h"
 #include "control_endpoint.h"
+#include "encoder_math.h"
 namespace vehicle_board {
 using namespace vehicle_config;
 portMUX_TYPE mux=portMUX_INITIALIZER_UNLOCKED;
@@ -19,12 +20,9 @@ void ARDUINO_ISR_ATTR edge() {
   if(last_edge && now-last_edge<min_edge_us) { ++edge_errors; portEXIT_CRITICAL_ISR(&mux); return; }
   if(quadrature) {
     // Full transition decoder; illegal two-bit changes invalidate this interval.
-    const uint8_t changed=previous_ab^ab;
-    if(changed==3) ++edge_errors;
-    else if(changed) {
-      const int direction=((previous_ab>>1)^(ab&1))?1:-1;
-      ticks+=uint32_t(direction*encoder_sign);
-    }
+    const int direction=encoder_math::transition(previous_ab,ab);
+    if(direction==2) ++edge_errors;
+    else ticks+=uint32_t(direction*encoder_sign);
     previous_ab=ab;
   } else ++ticks;
   last_edge=now;
@@ -37,7 +35,7 @@ struct WheelState {
     uint32_t n,e;
     portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;portEXIT_CRITICAL(&mux);
     const uint32_t delta=n-count;
-    const int64_t signed_delta=delta<=0x7fffffffu?int64_t(delta):int64_t(delta)-0x100000000LL;
+    const int64_t signed_delta=encoder_math::difference(n,count);
     valid=initialized && now>stamp && now-stamp<=25000 && e==errors && wheel_confirmed &&
       quadrature && isfinite(metres_per_count) && metres_per_count>0;
     if(initialized && now>stamp) speed=float(quadrature?signed_delta:int64_t(delta))*metres_per_count*1e6f/float(now-stamp);

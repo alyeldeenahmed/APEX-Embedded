@@ -81,3 +81,19 @@ GPIO8/9/4 now selected; vehicle orientation remains unconfirmed. No live sensor 
 COM-port capture ran. Monitor tests cover parsing/statistics, not physical USB.
 No measurements of interrupt latency, I2C timing, actual bias, reconnect, power or
 vehicle operation are claimed. Hardware tests and power identification are next.
+# Integrated vehicle verification — 4 November 2026
+
+First integrated revision `72632945e646a52d513dbb5c0235cdd247695107` passed:
+https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41793135262
+
+- 16 Python test methods (including command codec and mixed-stream recovery).
+- Existing 208 C++/Python telemetry packet comparisons and IMU/recovery tests.
+- Vehicle core and endpoint tests: expiry, replay, wrong boot/context/time,
+  explicit arm, steering/effort, cancellation, local feedback failure and parser CRC.
+- Four pinned ESP32-S3 N16R8 firmware builds, including integrated vehicle mode.
+
+Final hardening additionally tests revoked-context reinstall rejection, pending
+cancellation, driver failure, quadrature direction/illegal transitions and count
+wrap; use the latest GitHub Actions result for its commit-specific evidence.
+These are software checks, not hardware measurements or safety certification.
+
