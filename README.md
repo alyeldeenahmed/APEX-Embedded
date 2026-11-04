@@ -24,6 +24,13 @@ provide measured direction; signed validity requires the documented quadrature s
 
 [Milestone 2 passing build and tests](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41523561273)
 
+## Software and design before hardware
+
+- [Active checklist and completion criteria](docs/PRE_HARDWARE_CHECKLIST.md)
+- [Offline replay and validation](docs/OFFLINE_HANDOVER.md)
+- [Electrical and mechanical release requirements](docs/DESIGN_RELEASE.md)
+- Run `python tools/validate_software.py --firmware` for explicit test/build evidence.
+
 ## Team handover
 
 - [State contract v0.4 review, timing extension and ownership](docs/STATE_V04_REVIEW.md)

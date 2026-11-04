@@ -1,5 +1,14 @@
 # Progress — integrated implementation, 4 November 2026
 
+## Current pre-hardware work
+
+The active checklist is [PRE_HARDWARE_CHECKLIST.md](PRE_HARDWARE_CHECKLIST.md).
+Added offline capture replay, a unified software validation command and explicit
+power/mechanical design release requirements. The current local Python suite passes
+26 methods. C++ and target rebuilds are blocked locally by missing toolchains; previous
+CI evidence is not a substitute for checking this working tree. Hardware tests remain
+unstarted. See OFFLINE_HANDOVER.md and DESIGN_RELEASE.md.
+
 ## Current software scope
 
 State v0.4 review added independent timestamp companions, raw-event deduplication
