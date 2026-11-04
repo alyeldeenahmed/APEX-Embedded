@@ -24,6 +24,10 @@ jobs:
         run: |
           g++ -std=c++11 -Wall -Wextra -Werror -I. tests/test_vehicle.cpp -o /tmp/test_vehicle
           /tmp/test_vehicle
+      - name: Endpoint fault and command tests
+        run: |
+          g++ -std=c++11 -Wall -Wextra -Werror -I. tests/test_endpoint.cpp -o /tmp/test_endpoint
+          /tmp/test_endpoint
 
   esp32-build:
     runs-on: ubuntu-latest
@@ -45,6 +49,13 @@ jobs:
         run: python tools/build_firmware.py --imu
       - name: Compile standalone IMU bench mode
         run: python tools/build_firmware.py --bench
+      - name: Compile integrated vehicle firmware
+        run: python tools/build_firmware.py --vehicle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esp32-s3-n16r8-vehicle
+          path: build/vehicle/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: esp32-s3-n16r8-imu-bench

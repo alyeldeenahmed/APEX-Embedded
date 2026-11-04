@@ -2,11 +2,21 @@
 
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
-**Current milestone:** standalone IMU software ready for physical bench verification.
-The purchased ESP32-S3 DevKitC-1 N16R8 profile compiles in all three modes.
-Thirteen Python tests, 208 packet comparisons and host IMU/recovery tests pass.
-GPIO8/9/4 are assigned; sensor power wiring awaits breakout identification.
-Actual sensor readings, hardware timing and actuator control remain unverified.
+**Current milestone:** integrated embedded software implementation, pending physical
+validation and joint interface approval. `--vehicle` includes IMU acquisition,
+shaft interrupts, independent telemetry, Control request parsing, session/epoch
+handling, replay/expiry enforcement, cancellation, status, acceleration-to-effort
+mapping, steering/ESC PWM adapters and task watchdog. Outputs remain disabled and
+calibration unset. The original three bench modes remain available.
+
+- [Proposed command wire contract and lifecycle](docs/CONTROL_PROTOCOL.md)
+- [Configuration inventory and hardware test plan](docs/INTEGRATED_TEST_PLAN.md)
+- `control_link.py`: mixed-stream decoder and explicit one-shot bench client.
+- `python tools/build_firmware.py --vehicle`: compile integrated N16R8 firmware.
+
+No physical readings, motor response, timing guarantees or safe-stopping claims
+are established by software tests. The single-channel sensor selection cannot
+provide measured direction; signed validity requires the documented quadrature setup.
 
 [Milestone 4 passing builds, tests and bench binary artifact](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41684429013)
 
@@ -33,7 +43,7 @@ Related team repositories:
 The linked teams' software and documents are external references. This repository
 does not claim their interfaces have been jointly approved or physically integrated.
 
-## Milestone 1: telemetry packet
+## Historical milestone 1: telemetry packet
 
 Status: software prototype. No hardware tests or actuator outputs. The default mode
 uses simulated values; the optional IMU mode is documented in docs/IMU.md.
@@ -110,9 +120,9 @@ Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
 - Real sample timestamps must come from sensor acquisition. The sketch's timestamps
   represent synthetic sample generation only.
 
-## Remaining work
+## Remaining physical and cross-team work
 
-Run on the selected board; verify 100 Hz timing under load and the new
-IMU acquisition path; add independent encoder capture and wheel/steering freshness;
-agree startup/calibration behavior and sync CRC; agree Control's command protocol.
-Actuator control is intentionally not implemented in this milestone.
+Run on the selected board; measure timing, sensor behavior and all calibration
+parameters; confirm the proposed age/sync/command semantics with the teams;
+integrate the Pi-owned ROS bridge and Safety supervisor. Actuator adapter software
+exists in integrated mode, but outputs cannot be enabled with default calibration.

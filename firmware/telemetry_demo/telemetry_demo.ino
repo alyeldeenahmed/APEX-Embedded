@@ -2,6 +2,12 @@
 #include <Arduino.h>
 #include <esp_timer.h>
 #include "packet.h"
+#ifndef APEX_VEHICLE
+#define APEX_VEHICLE 0
+#endif
+#if APEX_VEHICLE
+#include "vehicle_board.h"
+#endif
 #ifndef APEX_USE_MPU6050
 #define APEX_USE_MPU6050 0
 #endif
@@ -26,6 +32,9 @@ void setup() {
   // Current build selects UART0 through the USB-to-UART connector.
   Serial.setTxBufferSize(2048);
   Serial.begin(921600);
+#if APEX_VEHICLE
+  vehicle_board::begin();
+#endif
 #if APEX_USE_MPU6050
   imu_board::begin();
 #endif
@@ -33,6 +42,9 @@ void setup() {
 }
 
 void loop() {
+#if APEX_VEHICLE
+  vehicle_board::service();
+#endif
 #if APEX_USE_MPU6050
   imu_board::service();
 #endif
@@ -52,13 +64,19 @@ void loop() {
     sample.timestamp = uint32_t(now);
     sample.accel[2] = 9.80665f;
 #endif
-    // Wheel and steering remain invalid in both bench modes.
+#if APEX_VEHICLE
+    vehicle_board::fill(sample,now);
+#endif
     if(available) {
       if(first_packet) sample.flags|=0x40;
       uint8_t packet[54];
       telemetry::encode(packet, sequence++, sample);
-      Serial.write(packet, sizeof(packet));
-      first_packet = false;
+      if(Serial.availableForWrite()>=int(sizeof(packet))) {
+        Serial.write(packet, sizeof(packet));first_packet=false;
+      }
+#if APEX_VEHICLE
+      else ++vehicle_board::tx_drops;
+#endif
     }
 #endif
     next_data += ((now - next_data) / 10000 + 1) * 10000;
@@ -67,7 +85,10 @@ void loop() {
   if (!APEX_IMU_BENCH && now >= next_sync) {
     uint8_t packet[14];
     telemetry::encode_sync(packet, now);
-    Serial.write(packet, sizeof(packet));
+    if(Serial.availableForWrite()>=int(sizeof(packet))) Serial.write(packet, sizeof(packet));
+#if APEX_VEHICLE
+    else ++vehicle_board::tx_drops;
+#endif
     next_sync += ((now - next_sync) / 1000000 + 1) * 1000000;
   }
 #if APEX_USE_MPU6050

@@ -36,13 +36,14 @@ deadline. Expiry or invalid local feedback disarms; fresh explicit arming is
 required. Steering rate uses elapsed update time. A negative normalized effort
 means braking, never reverse. No conversion coefficients or limits are invented.
 
-This core is NOT the complete v0.1 command interface. Session/epoch installation,
-wire parsing, acknowledgements, cancellation results and real output adapters
-remain to be implemented. It does not currently execute in the Arduino loop.
+The core is now used by the integrated command endpoint. Session/epoch installation,
+wire parsing, acknowledgements, cancellation and PWM adapters are implemented in
+`control_endpoint.h`, `command_protocol.h` and `vehicle_board.h`. See
+CONTROL_PROTOCOL.md for the authoritative current proposal.
 
 ## Hardware boundary
 
-No vehicle actuator outputs have been added. Keep all calibration confirmation
+Vehicle actuator outputs are disabled by default. Keep all calibration confirmation
 flags false until measurements establish steering mapping/rate, ESC pulse format,
 neutral behavior, brake/reverse semantics, speed scaling and valid operating
 limits. A neutral output or disabled signal is not a demonstrated safe stop.

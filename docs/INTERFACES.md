@@ -39,12 +39,14 @@ The model outputs steering angle in radians and longitudinal acceleration reques
 in m/s². This does not establish an ESC pulse, throttle percentage or desired-speed
 wire interface. On 3 November 2026 the Embedded team leader confirmed that
 **Embedded owns converting the acceleration request into motor/ESC commands**.
-The conversion algorithm, calibration, feedback strategy and limits are not yet
-implemented. This ownership decision does not imply Control will send desired speed.
+The integrated implementation now provides configurable feedforward conversion,
+limits and driver adapters. Physical calibration remains unset and unverified.
+This ownership decision does not imply Control will send desired speed.
 
-Agree command fields/units, transmission rate, identity/session rules, expiry,
-queue/replacement behavior, acknowledgements, cancellation and restart handling.
-Define local watchdog and held-output behavior jointly and validate on hardware.
+CONTROL_PROTOCOL.md specifies the implemented proposal for command fields,
+identity/session rules, expiry, replacement, acknowledgements and restart handling.
+INTEGRATED_TEST_PLAN.md clarifies wheel/steering age semantics. Joint approval and
+physical validation remain outstanding; these are proposals, not signed contracts.
 
 An 'applied' report means the firmware issued an output; it is not proof of actual
 steering position, acceleration or braking. No safe-stopping claim is made here.

@@ -1,4 +1,22 @@
-# Progress — 3 November 2026
+# Progress — integrated implementation, 4 November 2026
+
+## Current software scope
+
+Integrated `--vehicle` mode connects sensor acquisition, shaft GPIO capture,
+wheel estimator, 100 Hz telemetry, mixed serial command transport, boot/session/
+epoch checks, replay/expiry handling, explicit arm, cancel/revoke, result/status
+frames, acceleration-to-effort and steering mappings, disabled-by-default PWM
+drivers and task watchdog. Python codec/bench client and host tests accompany it.
+The v0.1 gaps are implementation proposals authorized by the team leader, not
+cross-team approvals. See CONTROL_PROTOCOL.md and INTEGRATED_TEST_PLAN.md.
+
+Hardware measurements, sensor direction selection, calibration, Pi-owned bridge,
+joint contract approval and vehicle tests remain. No hardware testing was performed.
+
+The entries below are historical milestone records; their incomplete-software
+lists describe the 3 November baseline and are superseded by the scope above.
+
+## Historical progress — 3 November 2026
 
 ## Completed in this workspace
 

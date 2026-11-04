@@ -32,3 +32,15 @@
 - Eight computer-side tests.
 - Hardware baseline, responsibility boundaries, open interface decisions and
   validation limitations documented for the other teams.
+# 4 November 2026 — integrated vehicle software
+
+- Integrated shaft capture and count-window speed, with signed validity gated by
+  quadrature and confirmed scale; zero-pulse reports continue at standstill.
+- Added proposed command/status frames, bounded parser, boot/session/epoch checks,
+  replay protection, explicit arming, expiry, cancellation and revocation.
+- Connected configurable acceleration feedforward and steering-rate logic to PWM
+  adapters; defaults leave all actuator outputs disabled and calibration unset.
+- Added task watchdog, nonblocking telemetry writes, host codec/bench client,
+  endpoint tests, integrated ESP32 build and hardware handover plan.
+- No hardware validation or joint interface approval is claimed.
+
