@@ -1,6 +1,6 @@
 # Embedded pre-hardware checklist
 
-Updated 4 November 2026. Work order: software and design first, physical tests later.
+Updated 5 November 2026. Work order: software and design first, physical tests later.
 Checked means the stated deliverable exists, not vehicle acceptance. Joint decisions
 remain proposals until the named teams record acceptance. No hardware tests have run.
 
@@ -16,9 +16,10 @@ remain proposals until the named teams record acceptance. No hardware tests have
 - [x] Add offline binary-to-JSONL raw-event replay for team handover.
 - [x] Add one validation entry point with machine-readable PASS/FAIL/BLOCKED evidence.
 - [x] Run current Python suite: 26 test methods passed locally on 4 November.
-- [ ] Rerun host C++ tests and all five target builds for the current working tree.
-      Local compiler/Arduino CLI are unavailable. Previous CI is historical evidence,
-      not evidence for uncommitted changes. CI will run after publication.
+- [x] Rerun host C++ tests and all five target builds for published revision
+      `98f2594ce3804181462e05316b8a92329cca8e82`: both CI jobs passed.
+      Verified 5 November: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41879094226
+      Local toolchains remain unavailable; GitHub supplied the build environment.
 
 Implementation references: IMU.md, CONTROL_PROTOCOL.md, STATE_V04_REVIEW.md.
 Verification command: `python tools/validate_software.py --firmware`.
@@ -85,7 +86,7 @@ runtime still require measurement. Never equate a successful software build with
 
 ## Execution priority
 
-1. Complete software verification in a toolchain-equipped environment.
+1. Software verification completed for revision `98f2594`; rerun on future software changes.
 2. Exchange the offline handover package and record P1-P4 / C1-C4 decisions.
 3. Resolve component selection and finish the electrical drawing/BOM revision.
 4. Obtain dimensions and finish mechanical CAD.

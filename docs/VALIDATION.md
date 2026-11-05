@@ -97,3 +97,24 @@ cancellation, driver failure, quadrature direction/illegal transitions and count
 wrap; use the latest GitHub Actions result for its commit-specific evidence.
 These are software checks, not hardware measurements or safety certification.
 
+
+## Pre-hardware software verification — checked 5 November 2026
+
+Tested revision: `98f2594ce3804181462e05316b8a92329cca8e82`.
+Run: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41879094226
+Both jobs completed successfully; individual host checks and all five compile
+steps were inspected. No software fixes were required by this run.
+
+- Python suite: 26 methods (same suite also passed locally).
+- C++/Python packet compatibility: PASS (8 fixed, 200 data and 100 timing cases).
+- MPU-6050, vehicle core and command endpoint: host compilation and execution PASS.
+- ESP32-S3 N16R8 builds: simulation, binary IMU, standalone IMU bench,
+  integrated vehicle 100 Hz and integrated vehicle 200 Hz all PASS.
+- Published artifacts: host-software-validation, esp32-s3-n16r8-imu-bench,
+  esp32-s3-n16r8-vehicle and esp32-s3-n16r8-vehicle-200hz.
+  Listed expiry is 18 November 2026; the run and commit identify the evidence.
+
+The local machine still lacks build tools. CI supplied the compiler and pinned
+Arduino environment. This closes the software verification checklist item only;
+it does not validate sensors, calibration, electrical behavior or physical stopping.
+Documentation-only completion records do not change the tested executable sources.

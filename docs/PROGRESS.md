@@ -5,9 +5,11 @@
 The active checklist is [PRE_HARDWARE_CHECKLIST.md](PRE_HARDWARE_CHECKLIST.md).
 Added offline capture replay, a unified software validation command and explicit
 power/mechanical design release requirements. The current local Python suite passes
-26 methods. C++ and target rebuilds are blocked locally by missing toolchains; previous
-CI evidence is not a substitute for checking this working tree. Hardware tests remain
-unstarted. See OFFLINE_HANDOVER.md and DESIGN_RELEASE.md.
+26 methods. GitHub CI for `98f2594` passed the host C++ suites, packet comparison
+and all five target builds; result verified 5 November 2026. Local toolchains are
+still unavailable, but software verification is complete for that revision.
+Run: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41879094226
+Hardware tests remain unstarted. See OFFLINE_HANDOVER.md and DESIGN_RELEASE.md.
 
 ## Current software scope
 
