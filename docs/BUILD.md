@@ -1,3 +1,5 @@
+> Update 9 November 2026: see [accepted decisions and proposed wheel v2](PERCEPTION_DECISIONS_2026_11_09.md). Sync CRC and timing v1 are accepted; 100 Hz is selected.
+
 # Reproducible build and packet interoperability
 
 Milestone 2 checks the firmware build and packet representation without requiring
@@ -55,10 +57,23 @@ boundaries, sequence/time wrap, and 64-bit sync boundaries. A further 200 seeded
 data cases exercise the C++/Python comparison reproducibly. Valid flags in fixtures
 are test inputs only; the on-board simulation continues to mark all readings invalid.
 
-The sync CRC coverage remains provisional. Host execution validates serialization
+The sync CRC coverage is confirmed by Perception. Host execution validates serialization
 on the host; the ESP32 build checks target compilation. Neither executes the binary
 on a real ESP32 or validates scheduling, resets, fresh sensors or motor behavior.
 
 References:
 - https://github.com/espressif/arduino-esp32/blob/3.3.0/boards.txt
 - https://github.com/arduino/setup-arduino-cli
+
+## Local WSL verification (9 November setup)
+
+A dedicated Ubuntu cache at ~/.cache/apex-embedded-toolchain holds the pinned
+ESP32 core; Arduino CLI 1.3.1 and downloaded archives are under ignored
+build/toolchain. Windows/OneDrive extraction was slow, so installed compiler
+files live in Linux storage. From this repository in Ubuntu, run:
+
+`bash tools/validate_wsl.sh`
+
+This runs host checks and all six profiles (including proposed wheel v2), never
+uploads, and writes build/software-validation.json. The helper assumes this local
+cache is installed; on another machine follow the pinned installation steps above.

@@ -1,0 +1,20 @@
+{
+  "records": {
+    "status": 10,
+    "sync": 1,
+    "data": 100,
+    "timing": 100
+  },
+  "events": {
+    "wheel": 80,
+    "imu": 100
+  },
+  "crc_errors": 0,
+  "header_errors": 0,
+  "trailing_bytes": 0,
+  "rejected_pairs": 0,
+  "pending_pair": false,
+  "boot_observed": true,
+  "receipt_timing_available": false,
+  "scope": "offline raw events; no clock mapping, trust or hardware validation"
+}

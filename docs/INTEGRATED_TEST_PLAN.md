@@ -14,6 +14,8 @@ Edit `firmware/telemetry_demo/vehicle_config.h` only after measuring values:
 | encoder A GPIO5, optional B GPIO6 | wiring, levels and clean pulse edges |
 | quadrature, encoder_sign | physical direction and transitions |
 | metres_per_count | tyre rolling circumference, shaft ratio, counts/revolution |
+| motion_effort_threshold / motion_timeout_us | measured startup, minimum speed and no-edge fault response; zero defaults block arming |
+| forward_only_control_confirmed | Control approval of unsigned operation and rollback policy |
 | min_edge_us | noise rejection without losing highest-rate valid pulses |
 | wheel_confirmed | scale, direction, interval and fault limitations reviewed |
 | servo GPIO15, ESC GPIO16 | electrical levels, connector polarity |
@@ -25,7 +27,10 @@ Edit `firmware/telemetry_demo/vehicle_config.h` only after measuring values:
 
 No credentials or vehicle parameters are loaded silently. The default firmware
 rejects ARM. A single-channel sensor can populate raw ticks and unsigned speed for
-inspection, but cannot set the signed wheel-valid flag. Quadrature counts every
+inspection; default timing v1 does not set wheel-valid without quadrature. Proposed
+opt-in timing v2 permits valid magnitude separately from measured direction; see
+PERCEPTION_DECISIONS_2026_11_09.md. Motor authorization remains separate and a
+configured motion monitor is required for either encoder mode. Quadrature counts every
 valid transition, so metres/count must include the x4 factor. Illegal transitions
 invalidate the affected interval. Unplugging a stationary encoder may be
 indistinguishable from zero speed; valid count sampling is not a sensor-health proof.

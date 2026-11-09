@@ -13,10 +13,11 @@ int main() {
       if (!(std::cin >> timestamp)) return 2;
       telemetry::encode_sync(output, timestamp);
       size = 14;
-    } else if (kind == 'T') {
+    } else if (kind == 'T' || kind == 'V') {
       unsigned seq,present;uint64_t report,imu,wheel,steering;
       if(!(std::cin>>seq>>present>>report>>imu>>wheel>>steering)) return 2;
-      telemetry::encode_timing(output,uint16_t(seq),uint8_t(present),report,imu,wheel,steering);
+      unsigned diagnostics=0; if(kind=='V' && !(std::cin>>diagnostics)) return 2;
+      telemetry::encode_timing(output,uint16_t(seq),uint8_t(present),report,imu,wheel,steering,uint8_t(diagnostics),kind=='V');
       size=42;
     } else if (kind == 'D') {
       telemetry::Sample s = {};

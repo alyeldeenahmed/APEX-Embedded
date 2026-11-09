@@ -26,6 +26,7 @@ class SensorEvents:
                 self.report = -1
             return []
         if kind == 'data':
+            if self.pending is not None: self.rejected += 1
             self.pending = record if self.boot is not None else None
             return []
         if kind != 'timing':
@@ -35,6 +36,12 @@ class SensorEvents:
             self.rejected += 1
             return []
         report = record['report_us']
+        if report < self.report:
+            self.boot = None
+            self.last.clear()
+            self.report = -1
+            self.rejected += 1
+            return []  # Require status confirmation after a backwards clock.
         present = record['present']
         stamps = [record[k] for k in ('imu_us', 'wheel_us', 'steering_us')]
         values = (*data['gyro'], *data['accel'], data['wheel_speed'], data['steering'])
@@ -51,6 +58,16 @@ class SensorEvents:
             (2, 'steering', dict(angle=data['steering'], measured=bool(data['flags'] & 32))),
         ):
             stamp = stamps[bit]
+            if name == 'wheel':
+                diagnostics=record.get('diagnostics',0)
+                if record.get('version',1)==2:
+                    if diagnostics & 2: continue
+                    measured=bool(diagnostics & 1)
+                    if not measured and data['wheel_speed']<0: continue
+                    payload.update(direction_measured=measured,
+                        motion_monitor_enabled=bool(diagnostics & 4))
+                else:
+                    payload.update(direction_measured=None, motion_monitor_enabled=None)
             if data['flags'] & (1 << bit) and stamp > self.last.get(name, -1):
                 self.last[name] = stamp
                 events.append(dict(sensor=name, boot=self.boot, sample_us=stamp,

@@ -1,10 +1,44 @@
 #include "firmware/telemetry_demo/vehicle_core.h"
 #include "firmware/telemetry_demo/encoder_math.h"
 #include "firmware/telemetry_demo/packet.h"
+#include "firmware/telemetry_demo/wheel_health.h"
 #include <cassert>
 #include <limits>
 int main() {
+  using wheel_health::magnitude_valid;
+  assert(!wheel_health::control_direction_allowed(false,true,false,.2f,100000));
+  assert(!wheel_health::control_direction_allowed(false,true,true,0,0));
+  assert(!wheel_health::control_direction_allowed(false,false,true,.2f,100000));
+  assert(wheel_health::control_direction_allowed(false,true,true,.2f,100000));
+  assert(!wheel_health::control_direction_allowed(true,false,false,0,0));
+  assert(wheel_health::control_direction_allowed(true,false,false,.2f,100000));
+  assert(magnitude_valid(true,20000,10000,true,true,.001f,false));
+  assert(!magnitude_valid(false,20000,10000,true,true,.001f,false));
+  assert(!magnitude_valid(true,35001,10000,true,true,.001f,false));
+  assert(!magnitude_valid(true,20000,10000,false,true,.001f,false));
+  assert(!magnitude_valid(true,20000,10000,true,false,.001f,false));
+  assert(!magnitude_valid(true,20000,10000,true,true,0,false));
+  assert(!magnitude_valid(true,20000,10000,true,true,.001f,true));
+  wheel_health::MotionMonitor m;
+  m.update(0,true,.5f,false,.2f,100000);
+  m.update(99999,true,.5f,false,.2f,100000); assert(!m.suspect);
+  m.update(100000,true,.5f,false,.2f,100000); assert(m.suspect);
+  m.update(110000,false,0,true,.2f,100000); assert(m.suspect);
+  wheel_health::MotionMonitor moving;
+  moving.update(0,true,.5f,false,.2f,100000);
+  moving.update(90000,true,.5f,true,.2f,100000);
+  moving.update(180000,true,.5f,false,.2f,100000); assert(!moving.suspect);
+  moving.update(190000,true,.5f,false,.2f,100000); assert(moving.suspect);
+  wheel_health::MotionMonitor idle;
+  idle.update(0,false,.5f,false,.2f,100000);
+  idle.update(200000,false,.5f,false,.2f,100000); assert(!idle.suspect);
+  idle.update(300000,true,.1f,false,.2f,100000); assert(!idle.tracking);
+  idle.update(400000,true,-.5f,false,.2f,100000); assert(!idle.tracking);
+  idle.update(500000,true,.5f,false,0,0); assert(!idle.tracking);
   uint8_t timing[42];
+  telemetry::encode_timing(timing,1,2,100,0,90,0,6,true);
+  assert(timing[3]==2 && timing[7]==6);
+  assert(telemetry::crc(timing+2,38)==(uint16_t(timing[40])|uint16_t(timing[41])<<8));
   telemetry::encode_timing(timing,65535,3,0x100000020ULL,0xfffffff0ULL,0x100000010ULL,0);
   assert(timing[2]==3 && timing[4]==255 && timing[5]==255 && timing[6]==3);
   assert(timing[8]==32 && timing[12]==1 && timing[16]==240 && timing[20]==0);

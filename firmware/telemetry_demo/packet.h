@@ -33,9 +33,10 @@ struct Sample {
 // Companion to type 01. Independent acquisition times are essential when the
 // IMU is held/invalid but wheel samples continue. This is an interface extension.
 inline void encode_timing(uint8_t* p,uint16_t seq,uint8_t present,uint64_t report,
-                          uint64_t imu,uint64_t wheel,uint64_t steering) {
+                          uint64_t imu,uint64_t wheel,uint64_t steering,uint8_t diagnostics=0,bool v2=false) {
   memset(p,0,42);p[0]=0xa5;p[1]=0x5a;p[2]=3;p[3]=1;
   u16(p+4,seq);p[6]=present&7;
+  if(v2) { p[3]=2;p[7]=diagnostics&7; }
   const uint64_t stamps[]={report,imu,wheel,steering};
   for(unsigned j=0;j<4;++j) for(unsigned i=0;i<8;++i) p[8+8*j+i]=uint8_t(stamps[j]>>(8*i));
   u16(p+40,crc(p+2,38));
@@ -55,7 +56,7 @@ inline void encode(uint8_t* p, uint16_t seq, const Sample& s) {
 inline void encode_sync(uint8_t* p, uint64_t timestamp) {
   p[0] = 0xa5; p[1] = 0x5a; p[2] = 2; p[3] = 1;
   for (unsigned i = 0; i < 8; ++i) p[4+i] = timestamp >> (8*i);
-  // Provisional CRC coverage; confirm with Perception.
+  // Perception confirmed CRC coverage: bytes 2-11.
   u16(p + 12, crc(p + 2, 10));
 }
 }

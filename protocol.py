@@ -34,13 +34,15 @@ def data_packet(seq, timestamp, gyro=(0., 0., 0.), accel=(0., 0., 9.80665),
 
 
 def sync_packet(timestamp):
-    # Provisional coverage: bytes 2 through 11; requires Perception agreement.
+    # Perception confirmed coverage: bytes 2 through 11.
     return frame(struct.pack("<BBQ", 2, 1, timestamp))
 
 
-def timing_packet(seq,report_us,imu_us,wheel_us,steering_us,present=0):
+def timing_packet(seq,report_us,imu_us,wheel_us,steering_us,present=0,diagnostics=0,version=1):
     if present & ~7: raise ValueError('Reserved presence flags')
-    return frame(struct.pack('<BBHBB4Q',3,1,seq&0xffff,present,0,
+    if version not in (1,2) or diagnostics & ~7 or (version==1 and diagnostics):
+        raise ValueError('Unsupported timing diagnostics/version')
+    return frame(struct.pack('<BBHBB4Q',3,version,seq&0xffff,present,diagnostics,
                              report_us,imu_us,wheel_us,steering_us))
 
 
@@ -62,7 +64,7 @@ class Decoder:
             if len(self.buffer) < 4:
                 break
             kind, version = self.buffer[2:4]
-            if kind not in (1, 2, 3, 0x11) or version != 1:
+            if kind not in (1, 2, 3, 0x11) or (version != 1 and not (kind==3 and version==2)):
                 self.header_errors += 1
                 del self.buffer[0]
                 continue
@@ -82,10 +84,10 @@ class Decoder:
                 continue
             if kind == 3:
                 _,_,seq,present,reserved,*times=struct.unpack('<BBHBB4Q',packet[2:-2])
-                if reserved or present&~7:
+                if (reserved if version==1 else reserved&~7) or present&~7:
                     self.header_errors+=1
                     continue
-                result.append(dict(type='timing',seq=seq,present=present,
+                result.append(dict(type='timing',seq=seq,present=present,version=version,diagnostics=reserved,
                     **dict(zip(('report_us','imu_us','wheel_us','steering_us'),times))))
                 continue
             if kind == 2:

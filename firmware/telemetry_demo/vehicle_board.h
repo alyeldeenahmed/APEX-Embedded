@@ -7,6 +7,7 @@
 #include "vehicle_config.h"
 #include "control_endpoint.h"
 #include "encoder_math.h"
+#include "wheel_health.h"
 namespace vehicle_board {
 using namespace vehicle_config;
 portMUX_TYPE mux=portMUX_INITIALIZER_UNLOCKED;
@@ -17,27 +18,31 @@ void ARDUINO_ISR_ATTR edge() {
   const uint64_t now=uint64_t(esp_timer_get_time());
   const uint8_t ab=uint8_t((digitalRead(encoder_a)<<1)|digitalRead(encoder_b));
   portENTER_CRITICAL_ISR(&mux);
-  if(last_edge && now-last_edge<min_edge_us) { ++edge_errors; portEXIT_CRITICAL_ISR(&mux); return; }
+  if(last_edge && now-last_edge<min_edge_us) { edge_errors=edge_errors+1; portEXIT_CRITICAL_ISR(&mux); return; }
   if(quadrature) {
     // Full transition decoder; illegal two-bit changes invalidate this interval.
     const int direction=encoder_math::transition(previous_ab,ab);
-    if(direction==2) ++edge_errors;
-    else ticks+=uint32_t(direction*encoder_sign);
+    if(direction==2) edge_errors=edge_errors+1;
+    else ticks=ticks+uint32_t(direction*encoder_sign);
     previous_ab=ab;
-  } else ++ticks;
+  } else ticks=ticks+1;
   last_edge=now;
   portEXIT_CRITICAL_ISR(&mux);
 }
+wheel_health::MotionMonitor motion;
 struct WheelState {
   uint32_t count=0,errors=0; uint64_t stamp=0;
-  float speed=0; bool valid=false,initialized=false;
-  void capture(uint64_t now) {
-    uint32_t n,e;
-    portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;now=uint64_t(esp_timer_get_time());portEXIT_CRITICAL(&mux);
+  float speed=0; bool valid=false,initialized=false; uint64_t observed_edge=0;
+  void capture(uint64_t now,bool driven,float effort) {
+    uint32_t n,e; uint64_t edge_stamp;
+    portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;edge_stamp=last_edge;now=uint64_t(esp_timer_get_time());portEXIT_CRITICAL(&mux);
     const uint32_t delta=n-count;
     const int64_t signed_delta=encoder_math::difference(n,count);
-    valid=initialized && now>stamp && now-stamp<=25000 && e==errors && wheel_confirmed &&
-      quadrature && isfinite(metres_per_count) && metres_per_count>0;
+    motion.update(now,driven,effort,edge_stamp!=observed_edge && e==errors,
+      motion_effort_threshold,motion_timeout_us);
+    observed_edge=edge_stamp;
+    valid=wheel_health::magnitude_valid(initialized,now,stamp,e==errors,
+      wheel_confirmed,metres_per_count,motion.suspect) && (quadrature || wheel_diagnostics_v2);
     if(initialized && now>stamp) speed=float(quadrature?signed_delta:int64_t(delta))*metres_per_count*1e6f/float(now-stamp);
     if(!isfinite(speed)) { valid=false;speed=0; }
     count=n;errors=e;stamp=now;initialized=true;
@@ -49,6 +54,7 @@ class Driver {
   static bool pulse(int pin,float us) { return ledcWrite(pin,uint32_t(us*pwm_hz*16383.0f/1e6f+0.5f)); }
 public:
   uint64_t last_write=0;
+  float applied_effort=0; bool applied_enabled=false;
   bool physical() const { return outputs_enabled&&attached_&&!failed_; }
   bool ready() const { return !outputs_enabled || physical(); }
   void begin() {
@@ -72,7 +78,7 @@ public:
     const float s=servo_center_us+fabsf(angle)/c.max_angle*((angle>=0?servo_left_us:servo_right_us)-servo_center_us);
     const float e=esc_neutral_us+fabsf(effort)*((effort>=0?esc_drive_us:esc_brake_us)-esc_neutral_us);
     const bool ok=pulse(servo,s)&pulse(esc,e);
-    if(ok) last_write=uint64_t(esp_timer_get_time());
+    if(ok) { last_write=uint64_t(esp_timer_get_time()); applied_effort=effort; applied_enabled=out.enabled; }
     if(!ok) { pulse(servo,servo_center_us);pulse(esc,esc_neutral_us);failed_=true; }
     return ok;
   }
@@ -90,7 +96,9 @@ void status(uint64_t now) {
   uint8_t p[64];engine->status(p,now,parser.errors,tx_drops,driver.physical());send(p,64);
 }
 bool healthy(uint64_t now) {
-  return watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
+  const bool direction_safe=wheel_health::control_direction_allowed(quadrature,
+    wheel_diagnostics_v2,forward_only_control_confirmed,motion_effort_threshold,motion_timeout_us);
+  return direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
 }
 void begin() {
   static endpoint::Engine instance(esp_random());engine=&instance;engine->calibration()=calibration();
@@ -120,7 +128,7 @@ void service() {
   }
   now=uint64_t(esp_timer_get_time());
   if(now>=next_tick) {
-    wheel.capture(now);
+    wheel.capture(now,driver.physical() && driver.applied_enabled,driver.applied_effort);
     now=uint64_t(esp_timer_get_time());
     if(engine->tick(now,healthy(now),driver)) status(now);
     next_tick=now+10000; // Skip late releases; never replay catch-up commands.

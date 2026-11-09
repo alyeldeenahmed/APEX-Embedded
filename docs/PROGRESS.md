@@ -1,15 +1,19 @@
-# Progress — integrated implementation, 4 November 2026
+# Progress — integrated implementation, 9 November 2026
 
-## Current pre-hardware work
+## Current pre-hardware work - verified 9 November 2026
 
-The active checklist is [PRE_HARDWARE_CHECKLIST.md](PRE_HARDWARE_CHECKLIST.md).
-Added offline capture replay, a unified software validation command and explicit
-power/mechanical design release requirements. The current local Python suite passes
-26 methods. GitHub CI for `98f2594` passed the host C++ suites, packet comparison
-and all five target builds; result verified 5 November 2026. Local toolchains are
-still unavailable, but software verification is complete for that revision.
-Run: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41879094226
-Hardware tests remain unstarted. See OFFLINE_HANDOVER.md and DESIGN_RELEASE.md.
+The current local working tree passes 35 Python tests, 316 cross-language packet
+comparisons, all three host C++ suites and all six ESP32 build profiles. The pinned
+Arduino CLI/core are installed in the dedicated Ubuntu cache; repeat with
+`bash tools/validate_wsl.sh`. Evidence: build/software-validation.json.
+
+Added opt-in wheel diagnostics v2, separate magnitude/direction authorization,
+latched drive/no-edge monitoring, decoder/restart handling, simulated capture,
+read-only hardware capture helper and shared unmeasured geometry template.
+See PERCEPTION_DECISIONS_2026_11_09.md and PRE_HARDWARE_CHECKLIST.md.
+Perception accepted timing v1/CRC/100 Hz; exact v2 assignment and Control policies
+still need agreement. Hardware tests, axes and calibration remain unstarted.
+This is local working-tree verification, not a new GitHub CI run or hardware proof.
 
 ## Current software scope
 

@@ -6,7 +6,7 @@ synchronization, the state estimator or gyro trust recovery.
 ## Validation
 
 Run `python tools/validate_software.py --firmware` from the repository root.
-Python tests, C++/Python packet comparisons, three host C++ suites and five firmware
+Python tests, C++/Python packet comparisons, three host C++ suites and six firmware
 profiles are checked. Missing compilers are BLOCKED and produce a nonzero exit code;
 they are never reported as passing. Without --firmware, target builds are not requested.
 The JSON evidence includes revision, dirty paths, individual output and hardware=false.
@@ -39,3 +39,7 @@ These use synthetic packets; they are not vehicle measurements.
 
 Keep raw MCU validity separate from Perception state flags. A returning IMU event is
 a candidate measurement, not trusted gyro; a zero wheel estimate is not proof of rest.
+
+Proposed wheel-v2 simulated data and expected events: handover/wheel-v2-simulated.
+Protocol acceptance and hardware measurements remain separate; see
+PERCEPTION_DECISIONS_2026_11_09.md.

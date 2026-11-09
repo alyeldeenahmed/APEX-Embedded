@@ -82,7 +82,11 @@ void loop() {
       const uint8_t present=(reading.present?1:0)|(vehicle_board::wheel.initialized?2:0)|
         (vehicle_board::driver.last_write?4:0);
       telemetry::encode_timing(packet+54,sequence,present,now,
-        reading.present?reading.timestamp:0,vehicle_board::wheel.stamp,vehicle_board::driver.last_write);
+        reading.present?reading.timestamp:0,vehicle_board::wheel.stamp,vehicle_board::driver.last_write,
+        (vehicle_config::quadrature && vehicle_config::wheel_confirmed?1:0) |
+        (vehicle_board::motion.suspect?2:0) |
+        (wheel_health::MotionMonitor::configured(vehicle_config::motion_effort_threshold,vehicle_config::motion_timeout_us)?4:0),
+        vehicle_config::wheel_diagnostics_v2);
       ++sequence;
 #else
       uint8_t packet[54];telemetry::encode(packet,sequence++,sample);

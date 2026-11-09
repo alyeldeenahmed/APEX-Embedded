@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--firmware', action='store_true', help='Also compile all five target profiles')
+    parser.add_argument('--firmware', action='store_true', help='Also compile all six target profiles')
     parser.add_argument('--report', type=Path, default=ROOT/'build/software-validation.json')
     args = parser.parse_args()
     results = []
@@ -42,11 +42,11 @@ def main():
                             reason='Install g++ or set CXX to its executable'))
     if args.firmware:
         if shutil.which('arduino-cli'):
-            for mode in ([], ['--imu'], ['--bench'], ['--vehicle'], ['--vehicle','--telemetry-hz','200']):
+            for mode in ([], ['--imu'], ['--bench'], ['--vehicle'], ['--vehicle','--telemetry-hz','200'], ['--vehicle','--wheel-diagnostics-v2']):
                 run('Firmware '+(' '.join(mode) or 'simulation'),
                     [sys.executable, 'tools/build_firmware.py', *mode])
         else:
-            results.append(dict(name='Five firmware builds', status='BLOCKED',
+            results.append(dict(name='Six firmware builds', status='BLOCKED',
                                 reason='Arduino CLI and pinned ESP32 core required; see BUILD.md'))
     revision = subprocess.run(['git','rev-parse','HEAD'], cwd=ROOT, text=True, capture_output=True)
     dirty = subprocess.run(['git','status','--porcelain'], cwd=ROOT, text=True, capture_output=True)

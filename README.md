@@ -1,5 +1,7 @@
 # APEX Embedded
 
+Integration update (9 November 2026): [Perception decisions, proposed wheel diagnostics v2, and remaining hardware gates](docs/PERCEPTION_DECISIONS_2026_11_09.md). Default wire profile remains v1 at 100 Hz; v2 requires explicit opt-in and peer acceptance.
+
 Embedded firmware and interface development for the APEX TT-02 graduation project.
 
 **Current milestone:** integrated embedded software implementation, pending physical
@@ -123,8 +125,8 @@ Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
 
 ## Explicit provisional choices
 
-- The PDF specifies a 14-byte sync frame but not its CRC coverage. This prototype
-  uses the same CRC algorithm over bytes 2–11 (type, version, uint64 timestamp).
+- The 14-byte sync frame uses CRC over bytes 2–11 (type, version, uint64 timestamp),
+  confirmed by Perception in its Rev 2 reply.
   Confirm this with Perception before freezing the interface.
 - Sync timestamps use the same boot-relative microsecond clock as data timestamps.
 - The simulated first packet has reset_seen set. Validity flags remain false.
@@ -136,6 +138,6 @@ Flags: bit 0 IMU valid, 1 wheel valid, 2 steering valid, 3 calibrating,
 ## Remaining physical and cross-team work
 
 Run on the selected board; measure timing, sensor behavior and all calibration
-parameters; confirm the proposed age/sync/command semantics with the teams;
+parameters; confirm the remaining wheel-v2/command semantics with the teams;
 integrate the Pi-owned ROS bridge and Safety supervisor. Actuator adapter software
 exists in integrated mode, but outputs cannot be enabled with default calibration.

@@ -4,7 +4,7 @@
 #include "mpu6050.h"
 #include "imu_config.h"
 
-// Pins are deliberately not assigned until the actual board wiring is agreed.
+// imu_config.h supplies proposed GPIOs; these fallbacks disable an unconfigured build.
 #ifndef APEX_IMU_SDA
 #define APEX_IMU_SDA -1
 #endif
@@ -55,7 +55,7 @@ uint32_t seen_generation=0, late_reads=0, ambiguous_reads=0, missed_edges=0;
 void ARDUINO_ISR_ATTR data_ready() {
   const uint64_t stamp=uint64_t(esp_timer_get_time());
   portENTER_CRITICAL_ISR(&mux);
-  edge_time=stamp; ++edge_count;
+  edge_time=stamp; edge_count=edge_count+1;
   portEXIT_CRITICAL_ISR(&mux);
 }
 bool begin() {

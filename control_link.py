@@ -74,7 +74,7 @@ class Stream:
         frames = []
         while len(self.buffer) >= 4:
             n = self.lengths.get(self.buffer[2])
-            if self.buffer[:2] != b'\xa5\x5a' or not n or self.buffer[3] != 1:
+            if self.buffer[:2] != b'\xa5\x5a' or not n or (self.buffer[3] != 1 and not (self.buffer[2]==3 and self.buffer[3]==2)):
                 del self.buffer[0]
                 self.errors += 1
                 continue

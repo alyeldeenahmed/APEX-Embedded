@@ -1,3 +1,5 @@
+> Update 9 November 2026: see [accepted decisions and proposed wheel v2](PERCEPTION_DECISIONS_2026_11_09.md). Sync CRC and timing v1 are accepted; 100 Hz is selected.
+
 # Interface decisions and open questions
 
 ## Source basis
@@ -19,23 +21,23 @@ CRC-16/CCITT-FALSE covers bytes 2–51; the checksum is serialized little-endian
 The stream decoder resynchronizes after bad CRCs and supports partial input chunks.
 It does not replace Perception's ROS bridge or clock/freshness logic.
 
-## Provisional sync encoding
+## Confirmed sync encoding
 
 14 bytes: A5 5A, type 02, version 01, uint64 boot-relative microseconds, uint16 CRC.
-**CRC coverage of bytes 2–11 is an implementation proposal, not explicit in the PDF.**
-Perception must confirm the CRC coverage and timestamp sampling semantics.
+Perception confirmed CRC coverage of bytes 2–11 in the Rev 2 response recorded
+on 9 November 2026. Report time remains distinct from acquisition and receipt time.
 
-## Decisions needed with Perception
+## Perception acceptance and remaining decisions
 
-1. Wheel timestamp: count-latch instant versus centre of the speed-estimation window.
-2. Freshness when shaft pulses are sparse at low speed or absent at standstill.
-3. Freshness of an unchanged commanded steering angle.
-4. Age-field saturation and invalid-value handling, including steering ages.
-5. Normal sequence/time wrap versus restart detection, including loss of the first
-   reset-marked packet.
-6. Startup initialization and the start of the two-second calibration interval.
-7. Sensor settings, timestamp mapping tests and ownership of shared calibration.
-8. Measured direction versus inferred direction for signed shaft-derived speed.
+Accepted: timing v1 pairing, CRC, 100 Hz stream, count-latch wheel timestamp,
+continuous zero-count windows, source-time freshness, repeated steering-write
+freshness and boot/sequence handling. The bridge owns ROS publication and mapping.
+See PERCEPTION_DECISIONS_2026_11_09.md for the authoritative disposition.
+
+Remaining: exact proposed timing-v2 diagnostics assignment; forward-only operation
+with Control; encoder resolution/scale; shared geometry/axes; startup calibration
+evidence; real timing/clock validation; and the single vehicle-message header stamp
+when wheel and steering have distinct source times.
 
 ## Decisions needed with Control
 

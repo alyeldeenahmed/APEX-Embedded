@@ -1,0 +1,17 @@
+{
+  "status": "UNMEASURED - NOT FOR ESTIMATOR USE",
+  "proposed_frame": "rear axle midpoint, x forward, y left, z up",
+  "frame_agreed": false,
+  "units": {"position": "m", "rotation": "rad"},
+  "imu_position_xyz": null,
+  "imu_rotation_rpy": null,
+  "lidar_position_xyz": null,
+  "front_axle_position_xyz": null,
+  "rear_axle_position_xyz": null,
+  "wheel_circumference_m": null,
+  "shaft_revolutions_per_wheel_revolution": null,
+  "effective_counts_per_wheel_revolution": null,
+  "proposed_minimum_counts_per_wheel_revolution": 400,
+  "servo_center_us": null,
+  "angle_to_pwm_calibration": null
+}

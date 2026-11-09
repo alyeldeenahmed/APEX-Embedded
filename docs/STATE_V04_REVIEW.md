@@ -1,5 +1,8 @@
 # State contract v0.4 review and Embedded changes
 
+UPDATE 9 November: [Perception decisions](PERCEPTION_DECISIONS_2026_11_09.md)
+supersede the open acceptance/rate questions below. Original review retained for history.
+
 Reviewed 4 November 2026: supplied seven-page "APEX State Contract v0.4 draft IMU
 dropout", dated 27 October 2026. This is a Perception-to-Control state contract,
 not a replacement MCU wire specification. Its simulator results are not vehicle

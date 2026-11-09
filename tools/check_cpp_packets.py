@@ -16,7 +16,7 @@ from protocol import Decoder, data_packet, sync_packet, timing_packet
 def command(case):
     if case['type']=='timing':
         v=case['values']
-        return 'T '+' '.join(str(v[k]) for k in ('seq','present','report_us','imu_us','wheel_us','steering_us'))
+        return ('V ' if v.get('version')==2 else 'T ')+' '.join(str(v[k]) for k in ('seq','present','report_us','imu_us','wheel_us','steering_us'))+(' '+str(v['diagnostics']) if v.get('version')==2 else '')
     if case["type"] == "sync":
         return f"S {case['timestamp']}"
     v = case["values"]
@@ -45,6 +45,8 @@ def main():
         cases.append(dict(name=f'timing-{i}',type='timing',values=dict(seq=rng.randrange(65536),
             present=rng.randrange(8),report_us=rng.randrange(2**64),imu_us=rng.randrange(2**64),
             wheel_us=rng.randrange(2**64),steering_us=rng.randrange(2**64))))
+    for diag in range(8):
+        cases.append(dict(name=f'wheel-v2-{diag}',type='timing',values=dict(seq=65535,present=2,report_us=2**32+100,imu_us=0,wheel_us=2**32,steering_us=0,version=2,diagnostics=diag)))
     with tempfile.TemporaryDirectory() as tmp:
         exe = Path(tmp) / ("packet_probe.exe" if os.name == "nt" else "packet_probe")
         subprocess.run([compiler, "-std=c++11", "-Wall", "-Wextra", "-Werror", "-I", str(ROOT),
@@ -67,7 +69,7 @@ def main():
             decoded += d.feed(cpp[offset:offset+7])
         if len(decoded) != 1 or d.crc_errors or d.buffer:
             raise AssertionError(f"Decoder rejected firmware frame: {case['name']}")
-    print(f"PASS: {golden_count} fixed vectors + 200 data + 100 timing cases; C++/Python bytes match; decoder accepts all frames.")
+    print(f"PASS: {golden_count} fixed vectors + 200 data + 100 timing + 8 wheel-v2 cases; C++/Python bytes match; decoder accepts all frames.")
 
 
 if __name__ == "__main__":

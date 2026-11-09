@@ -54,3 +54,14 @@
 - Added selectable 200 Hz telemetry build, retaining independent 100 Hz wheel capture.
 - Added dropout, cadence, rollover, orphan and timestamp tests and timing byte comparisons.
 
+
+## 9 November 2026 - Perception follow-up (local implementation)
+
+- Recorded accepted Rev 2 interface decisions and outstanding Control agreements.
+- Added opt-in timing v2 direction/motion diagnostics, preserving v1 as default.
+- Separated magnitude validity from direction authorization; added calibrated,
+  physical-drive no-edge monitor with latched fault and existing disarm response.
+- Updated both Python stream decoders and event metadata; backwards report time
+  requires boot confirmation, overwritten orphan pairs are counted.
+- Added C++ safety/protocol tests, Python cases, simulated v2 capture and geometry
+  template. Added sixth ESP32 build profile for v2. Hardware remains untested.

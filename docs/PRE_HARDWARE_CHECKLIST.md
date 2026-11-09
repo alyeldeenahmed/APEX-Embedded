@@ -1,6 +1,6 @@
 # Embedded pre-hardware checklist
 
-Updated 5 November 2026. Work order: software and design first, physical tests later.
+Updated 9 November 2026. Work order: software and design first, physical tests later.
 Checked means the stated deliverable exists, not vehicle acceptance. Joint decisions
 remain proposals until the named teams record acceptance. No hardware tests have run.
 
@@ -12,14 +12,16 @@ remain proposals until the named teams record acceptance. No hardware tests have
 - [x] Independent source timestamps, boot identity and deduplicated raw-event adapter.
 - [x] Control command lifecycle, expiry/replay checks, cancellation and status reporting.
 - [x] Embedded acceleration-to-effort conversion and steering/PWM adapters; defaults disabled.
-- [x] Host tests and five firmware build profiles maintained in CI.
+- [x] Host tests and six firmware build profiles maintained in CI (including opt-in wheel v2).
 - [x] Add offline binary-to-JSONL raw-event replay for team handover.
 - [x] Add one validation entry point with machine-readable PASS/FAIL/BLOCKED evidence.
-- [x] Run current Python suite: 26 test methods passed locally on 4 November.
+- [x] Current working tree: 35 Python tests, 316 packet comparisons, three C++ suites
+      and all six ESP32 profiles passed locally on 9 November.
 - [x] Rerun host C++ tests and all five target builds for published revision
       `98f2594ce3804181462e05316b8a92329cca8e82`: both CI jobs passed.
       Verified 5 November: https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41879094226
-      Local toolchains remain unavailable; GitHub supplied the build environment.
+      Historical CI evidence. A local Ubuntu toolchain is now installed; use
+      bash tools/validate_wsl.sh for the current working-tree evidence.
 
 Implementation references: IMU.md, CONTROL_PROTOCOL.md, STATE_V04_REVIEW.md.
 Verification command: `python tools/validate_software.py --firmware`.
@@ -30,11 +32,11 @@ No option uploads firmware or opens a hardware port.
 
 - [x] Provide packet definitions, independent sample times and standstill/dropout tests.
 - [x] Provide offline replay and explicit missing-receipt-time handling.
-- [ ] P1: Perception accepts type-03 pairing, sync CRC coverage and boot reset behavior.
-- [ ] P2: Jointly select 100 or 200 Hz telemetry; wheel acquisition remains 100 Hz.
+- [x] P1: Perception accepts timing v1 pairing, sync CRC and boot reset behavior.
+- [x] P2: Perception selected 100 Hz telemetry; wheel acquisition remains 100 Hz.
 - [ ] P3: Resolve direction sensing. Current single sensor cannot validate signed speed.
-- [ ] P4: Perception names ROS topics/frame IDs and owns clock mapping, calibration,
-      EKF/trust, dropout/recovery and AMCL gating. Embedded supplies raw measurements.
+- [x] P4: Perception names ROS topics and owns bridge/clock mapping and estimator.
+- [ ] Confirm shared frame IDs/geometry, wheel-v2 diagnostics and Control relay.
 - [ ] Run the same binary fixtures through the team's actual Pi bridge offline.
 
 Completion evidence: named reviewer, dated decision, agreed protocol/version and
@@ -86,7 +88,7 @@ runtime still require measurement. Never equate a successful software build with
 
 ## Execution priority
 
-1. Software verification completed for revision `98f2594`; rerun on future software changes.
+1. Review current local build/software-validation.json; old CI revision is historical.
 2. Exchange the offline handover package and record P1-P4 / C1-C4 decisions.
 3. Resolve component selection and finish the electrical drawing/BOM revision.
 4. Obtain dimensions and finish mechanical CAD.
@@ -94,3 +96,13 @@ runtime still require measurement. Never equate a successful software build with
 
 Items requiring other teams, component identification or measurements stay visibly open.
 No team response or physical value can be inferred from elapsed time.
+
+## 9 November implementation additions
+
+- [x] Proposed timing v2 distinguishes magnitude validity, measured direction and
+      latched motion-feedback suspicion; legacy profile remains default.
+- [x] Encoder no-edge monitor and separate motor authorization gates implemented.
+- [x] Updated both stream decoders; added host tests and simulated v2 handover.
+- [x] Read-only real capture helper and unmeasured shared geometry template prepared.
+- [ ] Perception accepts exact v2 encoding; Control accepts relay and fault/recovery.
+- [ ] Calibrate monitor and encoder; confirm IMU axes; acquire real hardware evidence.
