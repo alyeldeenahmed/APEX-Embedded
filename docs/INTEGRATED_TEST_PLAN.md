@@ -15,7 +15,7 @@ Edit `firmware/telemetry_demo/vehicle_config.h` only after measuring values:
 | quadrature, encoder_sign | physical direction and transitions |
 | metres_per_count | tyre rolling circumference, shaft ratio, counts/revolution |
 | motion_effort_threshold / motion_timeout_us | measured startup, minimum speed and no-edge fault response; zero defaults block arming |
-| forward_only_control_confirmed | Control approval of unsigned operation and rollback policy |
+| forward_only_control_confirmed | Must remain false: Control rejected unmeasured-direction operation on 9 November |
 | min_edge_us | noise rejection without losing highest-rate valid pulses |
 | wheel_confirmed | scale, direction, interval and fault limitations reviewed |
 | servo GPIO15, ESC GPIO16 | electrical levels, connector polarity |

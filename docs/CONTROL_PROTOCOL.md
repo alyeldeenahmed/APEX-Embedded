@@ -49,9 +49,12 @@ creation and no more than 100 ms later. Deadline must be strictly after arrival,
 at most 100 ms ahead, and after creation. These are provisional local bounds.
 Pi must account conservatively for clock-map uncertainty and transport delay.
 Future scheduled commands are rejected; no queue of trajectories is accepted.
-Suggested initial Pi SET rate is 50 Hz with a <=100 ms authority horizon, subject
-to joint review and measured transport jitter. The MCU does not invent commands
-when the Pi falls silent.
+Control's reviewed tracker is nominally 100 Hz. A tracker-aligned SET stream at
+nominal 100 Hz is the adapter proposal; it is not an approved wire schedule.
+The MCU receives commands independently of its 50 Hz physical PWM refresh.
+Its <=100 ms receive-relative deadline bound is not Control's trajectory horizon.
+Omar must resolve source authority/expiry and physical clock mapping; see
+INTERFACE_AUDIT_2026_11_09.md. The MCU does not invent commands when the Pi falls silent.
 
 Matching-boot requests consume a fresh sequence even when subsequently rejected.
 Fresh means modular difference in [1, 2^31-1]; gaps are allowed. CRC-invalid frames

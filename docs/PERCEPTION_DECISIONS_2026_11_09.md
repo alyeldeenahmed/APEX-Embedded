@@ -1,5 +1,11 @@
 # Perception integration decisions and remaining gates
 
+> Later Control reply on 9 November rejects unmeasured wheel direction. Keep
+> forward_only_control_confirmed=false; quadrature is the integration plan. The
+> v2 magnitude-only option below remains an offline development facility, not an
+> approved driving mode. See INTERFACE_AUDIT_2026_11_09.md for current owners,
+> repository comparison and still-pending ROS/clock/recovery decisions.
+
 9 November 2026. Source: team leader supplied Perception Rev 2 response; this
 supersedes their earlier response. No message has been sent on the team's behalf.
 

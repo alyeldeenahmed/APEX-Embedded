@@ -11,7 +11,7 @@ pending. Firmware pins were checked against imu_config.h and vehicle_config.h.
 | 3V3 | MPU VCC only after breakout regulator verification |
 | GND | MPU GND and AD0 |
 | GPIO5 | Conditioned speed channel A |
-| GPIO6 | Reserved optional quadrature B; unused today |
+| GPIO6 | Quadrature channel B, required by the current measured-direction plan |
 | GPIO15 | Steering PWM buffer input |
 | GPIO16 | ESC PWM buffer input |
 | COM USB-C | Pi USB-A via data cable; ESP power and serial |

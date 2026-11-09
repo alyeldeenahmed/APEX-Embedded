@@ -2,6 +2,12 @@
 
 # Interface decisions and open questions
 
+Current cross-repository disposition: [9 November interface review](INTERFACE_AUDIT_2026_11_09.md).
+Control rejected unmeasured wheel direction. Existing v2 and unsigned-operation
+text describes a development capability, not approval to drive. Omar coordinates
+ROS transport; Perception coordinates broader recovery. Hardware limits and
+actuator delays are Embedded measurements, not values Control must invent.
+
 ## Source basis
 
 The supplied State Contract v0.4 IMU-dropout draft has now been reviewed.

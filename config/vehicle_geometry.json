@@ -1,6 +1,6 @@
 {
   "status": "UNMEASURED - NOT FOR ESTIMATOR USE",
-  "proposed_frame": "rear axle midpoint, x forward, y left, z up",
+  "proposed_frame": "ground projection of vehicle centre of gravity, x forward, y left, z up; aligned to Perception sensor_mounts_car.yaml",
   "frame_agreed": false,
   "units": {"position": "m", "rotation": "rad"},
   "imu_position_xyz": null,

@@ -1,5 +1,10 @@
 # APEX Embedded
 
+Latest review: [Control and Perception interface audit](docs/INTERFACE_AUDIT_2026_11_09.md).
+Control requires measured wheel direction; unsigned driving is not approved.
+Start individual hardware measurements with the [bench guide index](docs/bench/00_Start_Here.md).
+These procedures contain no completed physical test results.
+
 Integration update (9 November 2026): [Perception decisions, proposed wheel diagnostics v2, and remaining hardware gates](docs/PERCEPTION_DECISIONS_2026_11_09.md). Default wire profile remains v1 at 100 Hz; v2 requires explicit opt-in and peer acceptance.
 
 Embedded firmware and interface development for the APEX TT-02 graduation project.
