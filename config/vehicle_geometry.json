@@ -2,16 +2,41 @@
   "status": "UNMEASURED - NOT FOR ESTIMATOR USE",
   "proposed_frame": "ground projection of vehicle centre of gravity, x forward, y left, z up; aligned to Perception sensor_mounts_car.yaml",
   "frame_agreed": false,
-  "units": {"position": "m", "rotation": "rad"},
+  "units": {
+    "position": "m",
+    "rotation": "rad"
+  },
   "imu_position_xyz": null,
   "imu_rotation_rpy": null,
   "lidar_position_xyz": null,
   "front_axle_position_xyz": null,
   "rear_axle_position_xyz": null,
   "wheel_circumference_m": null,
-  "shaft_revolutions_per_wheel_revolution": null,
+  "motor_revolutions_per_wheel_revolution": null,
   "effective_counts_per_wheel_revolution": null,
-  "proposed_minimum_counts_per_wheel_revolution": 400,
-  "servo_center_us": null,
-  "angle_to_pwm_calibration": null
+  "mt6701_counts_per_motor_revolution": 16384,
+  "servo_center_us": 1500,
+  "angle_to_pwm_calibration": {
+    "source": "Actual static measurements supplied by Aly",
+    "positive_angle": "left",
+    "left": {
+      "pulse_us": 1250,
+      "left_wheel_deg": 20,
+      "right_wheel_deg": 18
+    },
+    "centre": {
+      "pulse_us": 1500,
+      "left_wheel_deg": 0,
+      "right_wheel_deg": 0
+    },
+    "right": {
+      "pulse_us": 1750,
+      "left_wheel_deg": 18,
+      "right_wheel_deg": 20
+    },
+    "equivalent_limit_rad": 0.3316125579,
+    "mapping": "Piecewise linear approximation using mean wheel angle",
+    "dynamic_delay_measured": false,
+    "steering_rate_measured": false
+  }
 }

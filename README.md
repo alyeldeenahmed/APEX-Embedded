@@ -1,3 +1,7 @@
+**Integration handoff (24 November 2026):** [Start here](INTEGRATION_START_HERE.md). Confirmed new pins, actual static steering values, capture instructions and remaining drive-enablement gates.
+
+**Current TT-02 vehicle build** — [MT6701 wiring, firmware upload and Pi commands](CAR_INTEGRATION.md). Use these assignments for the assembled car.
+
 # APEX Embedded
 
 Latest review: [Control and Perception interface audit](docs/INTERFACE_AUDIT_2026_11_09.md).
@@ -11,7 +15,7 @@ Embedded firmware and interface development for the APEX TT-02 graduation projec
 
 **Current milestone:** integrated embedded software implementation, pending physical
 validation and joint interface approval. `--vehicle` includes IMU acquisition,
-shaft interrupts, independent telemetry, Control request parsing, session/epoch
+motor-mounted MT6701 SSI acquisition, independent telemetry, Control request parsing, session/epoch
 handling, replay/expiry enforcement, cancellation, status, acceleration-to-effort
 mapping, steering/ESC PWM adapters and task watchdog. Outputs remain disabled and
 calibration unset. The original three bench modes remain available.

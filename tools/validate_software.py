@@ -32,7 +32,7 @@ def main():
     if compiler:
         run('C++/Python packet compatibility', [sys.executable, 'tools/check_cpp_packets.py'])
         with tempfile.TemporaryDirectory() as tmp:
-            for name in ('mpu6050', 'vehicle', 'endpoint'):
+            for name in ('mpu6050', 'vehicle', 'endpoint', 'mt6701'):
                 exe = str(Path(tmp)/('test_'+name+('.exe' if os.name == 'nt' else '')))
                 if run(name+' compile', [compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror',
                                        '-I.', 'tests/test_'+name+'.cpp', '-o', exe]):

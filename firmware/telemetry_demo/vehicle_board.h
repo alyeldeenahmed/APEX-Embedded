@@ -8,44 +8,28 @@
 #include "control_endpoint.h"
 #include "encoder_math.h"
 #include "wheel_health.h"
+#include "motor_encoder.h"
 namespace vehicle_board {
 using namespace vehicle_config;
-portMUX_TYPE mux=portMUX_INITIALIZER_UNLOCKED;
-volatile uint32_t ticks=0,edge_errors=0;
-volatile uint64_t last_edge=0;
-volatile uint8_t previous_ab=0;
-void ARDUINO_ISR_ATTR edge() {
-  const uint64_t now=uint64_t(esp_timer_get_time());
-  const uint8_t ab=uint8_t((digitalRead(encoder_a)<<1)|digitalRead(encoder_b));
-  portENTER_CRITICAL_ISR(&mux);
-  if(last_edge && now-last_edge<min_edge_us) { edge_errors=edge_errors+1; portEXIT_CRITICAL_ISR(&mux); return; }
-  if(quadrature) {
-    // Full transition decoder; illegal two-bit changes invalidate this interval.
-    const int direction=encoder_math::transition(previous_ab,ab);
-    if(direction==2) edge_errors=edge_errors+1;
-    else ticks=ticks+uint32_t(direction*encoder_sign);
-    previous_ab=ab;
-  } else ticks=ticks+1;
-  last_edge=now;
-  portEXIT_CRITICAL_ISR(&mux);
-}
+MotorEncoder encoder;
 wheel_health::MotionMonitor motion;
 struct WheelState {
-  uint32_t count=0,errors=0; uint64_t stamp=0;
-  float speed=0; bool valid=false,initialized=false; uint64_t observed_edge=0;
+  uint32_t count=0, previous_gaps=0;
+  uint64_t stamp=0;
+  float speed=0;
+  bool valid=false, initialized=false, continuous_interval=false;
   void capture(uint64_t now,bool driven,float effort) {
-    uint32_t n,e; uint64_t edge_stamp;
-    portENTER_CRITICAL(&mux); n=ticks;e=edge_errors;edge_stamp=last_edge;now=uint64_t(esp_timer_get_time());portEXIT_CRITICAL(&mux);
-    const uint32_t delta=n-count;
-    const int64_t signed_delta=encoder_math::difference(n,count);
-    motion.update(now,driven,effort,edge_stamp!=observed_edge && e==errors,
-      motion_effort_threshold,motion_timeout_us);
-    observed_edge=edge_stamp;
-    valid=wheel_health::magnitude_valid(initialized,now,stamp,e==errors,
-      wheel_confirmed,metres_per_count,motion.suspect) && (quadrature || wheel_diagnostics_v2);
-    if(initialized && now>stamp) speed=float(quadrature?signed_delta:int64_t(delta))*metres_per_count*1e6f/float(now-stamp);
-    if(!isfinite(speed)) { valid=false;speed=0; }
-    count=n;errors=e;stamp=now;initialized=true;
+    const uint32_t current=encoder.count;
+    const bool continuous=encoder.tracking && previous_gaps==encoder.gaps;
+    previous_gaps=encoder.gaps;
+    now=uint64_t(esp_timer_get_time());
+    const auto delta=encoder_math::difference(current,count);
+    motion.update(now,driven,effort,delta!=0,motion_effort_threshold,motion_timeout_us);
+    continuous_interval=initialized && continuous;
+    valid=wheel_health::magnitude_valid(initialized,now,stamp,continuous,wheel_confirmed,
+                                        metres_per_count,motion.suspect);
+    speed=valid ? float(delta)*metres_per_count*1e6f/float(now-stamp) : 0;
+    count=current; stamp=now; initialized=encoder.tracking;
   }
 } wheel;
 class Driver {
@@ -58,6 +42,7 @@ public:
   bool physical() const { return outputs_enabled&&attached_&&!failed_; }
   bool ready() const { return !outputs_enabled || physical(); }
   void begin() {
+    pinMode(pwm_enable,OUTPUT); digitalWrite(pwm_enable,LOW);
     if(!outputs_enabled) return;
     const auto c=calibration();
     if(!pulse_mapping_confirmed||!brake_only_mode_confirmed||!c.ready()||
@@ -68,7 +53,7 @@ public:
     const bool s=ledcAttach(servo,pwm_hz,14),e=ledcAttach(esc,pwm_hz,14);
     attached_=s&&e;
     if(!attached_) { if(s)ledcDetach(servo);if(e)ledcDetach(esc);failed_=true;return; }
-    vehicle::Output neutral; write(neutral);
+    vehicle::Output neutral; if(write(neutral)) digitalWrite(pwm_enable,HIGH);
   }
   bool write(const vehicle::Output& out) {
     if(!outputs_enabled) return true; // Simulation only; no GPIO writes.
@@ -79,7 +64,7 @@ public:
     const float e=esc_neutral_us+fabsf(effort)*((effort>=0?esc_drive_us:esc_brake_us)-esc_neutral_us);
     const bool ok=pulse(servo,s)&pulse(esc,e);
     if(ok) { last_write=uint64_t(esp_timer_get_time()); applied_effort=effort; applied_enabled=out.enabled; }
-    if(!ok) { pulse(servo,servo_center_us);pulse(esc,esc_neutral_us);failed_=true; }
+    if(!ok) { digitalWrite(pwm_enable,LOW); pulse(servo,servo_center_us);pulse(esc,esc_neutral_us);failed_=true; }
     return ok;
   }
 } driver;
@@ -96,16 +81,12 @@ void status(uint64_t now) {
   uint8_t p[64];engine->status(p,now,parser.errors,tx_drops,driver.physical());send(p,64);
 }
 bool healthy(uint64_t now) {
-  const bool direction_safe=wheel_health::control_direction_allowed(quadrature,
-    wheel_diagnostics_v2,forward_only_control_confirmed,motion_effort_threshold,motion_timeout_us);
-  return direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
+  const bool direction_safe=wheel_health::MotionMonitor::configured(motion_effort_threshold,motion_timeout_us);
+  return encoder.tracking && wheel.previous_gaps==encoder.gaps && direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
 }
 void begin() {
   static endpoint::Engine instance(esp_random());engine=&instance;engine->calibration()=calibration();
-  pinMode(encoder_a,INPUT_PULLUP);pinMode(encoder_b,INPUT_PULLUP);
-  previous_ab=uint8_t((digitalRead(encoder_a)<<1)|digitalRead(encoder_b));
-  attachInterrupt(digitalPinToInterrupt(encoder_a),edge,quadrature?CHANGE:RISING);
-  if(quadrature) attachInterrupt(digitalPinToInterrupt(encoder_b),edge,CHANGE);
+  encoder.begin();
   driver.begin();
   esp_task_wdt_config_t cfg={};cfg.timeout_ms=250;cfg.idle_core_mask=0;cfg.trigger_panic=true;
   esp_err_t err=esp_task_wdt_init(&cfg);
@@ -115,6 +96,7 @@ void begin() {
 }
 void service() {
   uint64_t now=uint64_t(esp_timer_get_time());
+  encoder.poll(now);
   // Bounded receive work: a hostile/noisy stream cannot monopolize the loop.
   for(unsigned budget=0;budget<128&&Serial.available();++budget) {
     control_wire::Request r;
@@ -145,7 +127,7 @@ void fill(telemetry::Sample& s,uint64_t now) {
   s.ticks=int32_t(wheel.count);s.speed=wheel.speed;
   const uint64_t age=now>=wheel.stamp?now-wheel.stamp:65535;
   s.wheel_age=uint16_t(age>65535?65535:age);
-  if(wheel.valid&&age<=25000) s.flags|=2;
+  if(wheel.valid && encoder.tracking && wheel.previous_gaps==encoder.gaps && age<=25000) s.flags|=2;
   s.steering=engine->output.steering;
   const uint64_t steer_age=driver.last_write&&now>=driver.last_write?now-driver.last_write:65535;
   s.steer_age=uint16_t(steer_age>65535?65535:steer_age);

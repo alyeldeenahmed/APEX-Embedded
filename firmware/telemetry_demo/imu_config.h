@@ -8,7 +8,11 @@
 #define APEX_IMU_SCL 9
 #endif
 #ifndef APEX_IMU_INT
+#if defined(APEX_VEHICLE) && APEX_VEHICLE
+#define APEX_IMU_INT 7
+#else
 #define APEX_IMU_INT 4
+#endif
 #endif
 #ifndef APEX_IMU_ADDRESS
 #define APEX_IMU_ADDRESS 0x68

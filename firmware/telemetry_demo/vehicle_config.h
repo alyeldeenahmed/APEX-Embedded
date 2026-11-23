@@ -1,26 +1,41 @@
 #pragma once
 #include "vehicle_core.h"
 namespace vehicle_config {
-// Proposed GPIOs, separate from IMU 8/9/4. Electrical fitting is still pending.
-constexpr int encoder_a=5,encoder_b=6,servo=15,esc=16;
-constexpr bool quadrature=false, wheel_confirmed=false, outputs_enabled=false;
-constexpr float metres_per_count=0; // Quadrature mode counts all four transitions.
+// November test schematic, with MT6701 mounted at the motor.
+constexpr int encoder_clk=11,encoder_do=10,encoder_cs=12,servo=5,esc=4,pwm_enable=6;
+constexpr bool wheel_confirmed=false, outputs_enabled=false;
+// Assumed upper bound of 30,000 motor RPM; shrink gap for a faster motor.
+constexpr uint64_t max_sample_gap_us=1000;
+constexpr float motor_revs_per_wheel_rev=0, loaded_circumference_m=0;
+constexpr float metres_per_count=motor_revs_per_wheel_rev>0
+  ? loaded_circumference_m/(16384.0f*motor_revs_per_wheel_rev) : 0;
 constexpr int encoder_sign=1;
 // Negotiated extension is implemented, NOT enabled until peer decoder acceptance.
 #ifndef APEX_WHEEL_DIAGNOSTICS_V2
 #define APEX_WHEEL_DIAGNOSTICS_V2 0
 #endif
 constexpr bool wheel_diagnostics_v2=APEX_WHEEL_DIAGNOSTICS_V2;
-constexpr bool forward_only_control_confirmed=false;
+static_assert(encoder_sign==1 || encoder_sign==-1,"Encoder sign must be +1 or -1");
 // Hardware calibration required; zero disables the motion diagnostic.
 constexpr float motion_effort_threshold=0;
 constexpr uint64_t motion_timeout_us=0;
-constexpr uint32_t min_edge_us=0; // Set only after measuring the maximum pulse rate.
 constexpr unsigned pwm_hz=50;
-constexpr float servo_left_us=0,servo_center_us=0,servo_right_us=0;
+// Actual static measurements: left 20/18 degrees, centre 0/0, right 18/20.
+// Equivalent bicycle angle uses their mean; interpolation remains approximate.
+constexpr float servo_left_us=1250,servo_center_us=1500,servo_right_us=1750;
 constexpr float esc_neutral_us=0,esc_drive_us=0,esc_brake_us=0;
 constexpr bool pulse_mapping_confirmed=false, brake_only_mode_confirmed=false;
-inline vehicle::Calibration calibration() { return vehicle::Calibration{}; }
+inline vehicle::Calibration calibration() {
+  vehicle::Calibration c;
+  c.max_angle=0.33161256f; // +/-19 degrees equivalent road-wheel angle
+  c.max_accel=0;        // m/s^2
+  c.max_decel=0;        // positive magnitude in m/s^2
+  c.steer_rate=0;       // rad/s
+  c.drive_per_accel=0;  // normalized effort per m/s^2
+  c.brake_per_decel=0;
+  c.confirmed=false;
+  return c;
+}
 // Edit calibration() with measured limits and force-to-effort coefficients, then
 // set its confirmed field. Defaults intentionally prevent ARM.
 }

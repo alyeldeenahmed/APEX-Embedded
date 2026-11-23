@@ -1,3 +1,8 @@
+# TT-02 integration wiring
+
+The current vehicle build follows the November engineering test schematic with the motor-mounted MT6701. See [final integration](../CAR_INTEGRATION.md) for the harness, power and signal assignments. Earlier W1 assignments apply only to their historical bench fixtures.
+
+
 # Detailed pin wiring proposal W1
 
 4 November 2026. Companion to POWER_DESIGN.md. Hardware qualification remains

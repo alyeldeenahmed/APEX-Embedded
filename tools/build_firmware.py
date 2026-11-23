@@ -18,7 +18,7 @@ args=parser.parse_args()
 if args.wheel_diagnostics_v2 and not args.vehicle: parser.error('Diagnostics require --vehicle')
 flags=f'-DAPEX_IMU_ADDRESS={args.address} -DAPEX_TELEMETRY_HZ={args.telemetry_hz}'
 if args.imu or args.bench or args.vehicle: flags+=' -DAPEX_USE_MPU6050=1'
-if args.vehicle: flags+=' -DAPEX_VEHICLE=1'
+flags+=f' -DAPEX_VEHICLE={int(args.vehicle)}'
 if args.bench: flags+=' -DAPEX_IMU_BENCH=1'
 if args.wheel_diagnostics_v2: flags+=' -DAPEX_WHEEL_DIAGNOSTICS_V2=1'
 extra=['--build-property','build.extra_flags='+flags]

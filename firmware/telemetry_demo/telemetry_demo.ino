@@ -1,4 +1,4 @@
-// Simulation by default; optional IMU bench and integrated vehicle modes.
+// IDE default is the integrated car in sensor-only commissioning mode.
 // Vehicle outputs require explicit confirmed calibration in vehicle_config.h.
 #include <Arduino.h>
 #include <esp_timer.h>
@@ -9,13 +9,13 @@
 static_assert(APEX_TELEMETRY_HZ==100 || APEX_TELEMETRY_HZ==200,"Supported telemetry rates: 100 or 200 Hz");
 constexpr uint64_t data_period=1000000/APEX_TELEMETRY_HZ;
 #ifndef APEX_VEHICLE
-#define APEX_VEHICLE 0
+#define APEX_VEHICLE 1
 #endif
 #if APEX_VEHICLE
 #include "vehicle_board.h"
 #endif
 #ifndef APEX_USE_MPU6050
-#define APEX_USE_MPU6050 0
+#define APEX_USE_MPU6050 APEX_VEHICLE
 #endif
 #ifndef APEX_IMU_BENCH
 #define APEX_IMU_BENCH 0
@@ -79,11 +79,14 @@ void loop() {
       uint8_t packet[96]; // Queue data + timing together, with the same sequence.
       telemetry::encode(packet,sequence,sample);
       const auto& reading=imu_board::device.reading();
-      const uint8_t present=(reading.present?1:0)|(vehicle_board::wheel.initialized?2:0)|
+      const bool wheel_continuous=vehicle_board::wheel.continuous_interval &&
+        vehicle_board::encoder.tracking &&
+        vehicle_board::wheel.previous_gaps==vehicle_board::encoder.gaps;
+      const uint8_t present=(reading.present?1:0)|(wheel_continuous?2:0)|
         (vehicle_board::driver.last_write?4:0);
       telemetry::encode_timing(packet+54,sequence,present,now,
         reading.present?reading.timestamp:0,vehicle_board::wheel.stamp,vehicle_board::driver.last_write,
-        (vehicle_config::quadrature && vehicle_config::wheel_confirmed?1:0) |
+        (vehicle_config::wheel_confirmed?1:0) |
         (vehicle_board::motion.suspect?2:0) |
         (wheel_health::MotionMonitor::configured(vehicle_config::motion_effort_threshold,vehicle_config::motion_timeout_us)?4:0),
         vehicle_config::wheel_diagnostics_v2);
