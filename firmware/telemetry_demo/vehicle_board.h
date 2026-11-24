@@ -26,9 +26,12 @@ struct WheelState {
     const auto delta=encoder_math::difference(current,count);
     motion.update(now,driven,effort,delta!=0,motion_effort_threshold,motion_timeout_us);
     continuous_interval=initialized && continuous;
-    valid=wheel_health::magnitude_valid(initialized,now,stamp,continuous,wheel_confirmed,
+    const bool calculable=wheel_health::magnitude_valid(initialized,now,stamp,continuous,true,
                                         metres_per_count,motion.suspect);
-    speed=valid ? float(delta)*metres_per_count*1e6f/float(now-stamp) : 0;
+    valid=calculable && wheel_confirmed;
+    // Report nominal speed for commissioning even before direction confirmation.
+    // Consumers must still honor the wheel-valid bit. Invalid intervals are zero/invalid.
+    speed=calculable ? float(delta)*metres_per_count*1e6f/float(now-stamp) : 0;
     count=current; stamp=now; initialized=encoder.tracking;
   }
 } wheel;

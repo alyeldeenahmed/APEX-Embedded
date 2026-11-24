@@ -1,5 +1,5 @@
 {
-  "status": "UNMEASURED - NOT FOR ESTIMATOR USE",
+  "status": "PARTIAL - nominal wheel scale configured; mounting geometry and wheel validity pending",
   "proposed_frame": "ground projection of vehicle centre of gravity, x forward, y left, z up; aligned to Perception sensor_mounts_car.yaml",
   "frame_agreed": false,
   "units": {
@@ -11,9 +11,9 @@
   "lidar_position_xyz": null,
   "front_axle_position_xyz": null,
   "rear_axle_position_xyz": null,
-  "wheel_circumference_m": null,
-  "motor_revolutions_per_wheel_revolution": null,
-  "effective_counts_per_wheel_revolution": null,
+  "wheel_circumference_m": 0.20420352248333656,
+  "motor_revolutions_per_wheel_revolution": 8.27,
+  "effective_counts_per_wheel_revolution": 135495.68,
   "mt6701_counts_per_motor_revolution": 16384,
   "servo_center_us": 1500,
   "angle_to_pwm_calibration": {
@@ -46,5 +46,14 @@
     "address_7bit": "0x06",
     "bus_hz": 400000,
     "ssi_crc_and_field_status_available": false
+  },
+  "wheel_diameter_m": 0.065,
+  "wheel_scale_evidence": {
+    "gearing": "Standard TT-02 original gears confirmed by Aly; 22T pinion, 70T spur, published ratio rounded to 8.27:1",
+    "source": "https://www.tamiya.com/cms/english/rc/rcmanual/tt02.pdf",
+    "diameter": "65 mm supplied by Aly",
+    "circumference": "pi times diameter; loaded rollout not measured",
+    "forward_sign_confirmed": false,
+    "metres_per_encoder_count": 1.5070851150629789e-06
   }
 }

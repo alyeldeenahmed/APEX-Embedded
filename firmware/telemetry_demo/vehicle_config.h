@@ -10,10 +10,15 @@ constexpr uint8_t encoder_address=0x06; // 7-bit default; 0x46 only if verified 
 #define APEX_ENABLE_OUTPUTS 0
 #endif
 static_assert(APEX_ENABLE_OUTPUTS==0 || APEX_ENABLE_OUTPUTS==1,"Outputs must be 0 or 1");
+// Keep false until forward sign and installed encoder operation are checked.
 constexpr bool wheel_confirmed=false, outputs_enabled=APEX_ENABLE_OUTPUTS;
 // Assumed upper bound of 30,000 motor RPM; shrink gap for a faster motor.
 constexpr uint64_t max_sample_gap_us=1000;
-constexpr float motor_revs_per_wheel_rev=0, loaded_circumference_m=0;
+// Standard TT-02 original gears confirmed by Aly: Tamiya 22T/70T, 8.27:1.
+// 65 mm diameter supplied by Aly; nominal circumference, not loaded rollout.
+constexpr float motor_revs_per_wheel_rev=8.27f;
+constexpr float wheel_diameter_m=0.065f;
+constexpr float loaded_circumference_m=3.14159265358979323846f*wheel_diameter_m;
 constexpr float metres_per_count=motor_revs_per_wheel_rev>0
   ? loaded_circumference_m/(16384.0f*motor_revs_per_wheel_rev) : 0;
 constexpr int encoder_sign=1;
