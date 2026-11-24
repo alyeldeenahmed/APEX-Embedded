@@ -60,6 +60,15 @@ Replace /dev/ttyUSB0 with the ESP's by-id path or its actual device. The LiDAR m
 
 ## 4. Enable physical commands after calibration
 
+The complete vehicle firmware includes both outputs: steering PWM on GPIO5 and ESC PWM on GPIO4, at 50 Hz, alongside IMU and I2C encoder acquisition. Select the explicit actuator profile with:
+
+    python tools/build_firmware.py --vehicle --enable-outputs
+
+Its files go to build/vehicle-outputs/, separate from the sensor-only build/vehicle/. In Arduino IDE, change the default `#define APEX_ENABLE_OUTPUTS 0` to `1` in vehicle_config.h instead. A build request is not an ARM command. Current ESC pulse widths, acceleration mapping, steering rate and feedback calibration are incomplete, so even the actuator profile currently produces no PWM. Do not substitute guessed values merely to clear these checks.
+
+After calibration passes, startup outputs are steering centre and ESC neutral. Nonzero commands require an explicit session/ARM and fresh valid feedback. Expiry or feedback faults disarm and request neutral; neutral is not proven active braking. Status flag 4 confirms physical PWM initialization, flag 2 identifies the armed state. The GPIO6 buffer-enable signal is unused in Aly's direct GPIO wiring; common ground and verified 3.3 V signal acceptance are still required.
+
+
 In firmware/telemetry_demo/vehicle_config.h retain the actual static servo values (1250 us left, 1500 us centre, 1750 us right), fill in measured ESC neutral/drive/brake pulse widths, and complete the remaining fields in calibration(). The equivalent steering limit is +/-0.33161256 rad (19 degrees, the mean of the two front-wheel angles). Intermediate angles use an approximation; steering rate and response delay remain unmeasured. Use radians and m/s². Set a measured motion_effort_threshold (0 to 1, exclusive) and motion_timeout_us that distinguish sustained drive from stationary noise. Verify forward/brake-only mode on the THW-1060-RTR, signal polarity and steering endpoints using your RC tester/receiver with wheels raised. The two actuator confirmation switches, calibration.confirmed and outputs_enabled are explicit. Rebuild and upload after changing them. An uncalibrated image refuses physical commands.
 
 First test neutral with the wheels clear, an operator at the power disconnect, and the Pi monitor closed:

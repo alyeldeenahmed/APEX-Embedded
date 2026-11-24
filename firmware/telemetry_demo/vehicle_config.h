@@ -4,7 +4,13 @@ namespace vehicle_config {
 // November test schematic, with MT6701 mounted at the motor.
 constexpr int encoder_scl=11,encoder_sda=10,servo=5,esc=4,pwm_enable=6;
 constexpr uint8_t encoder_address=0x06; // 7-bit default; 0x46 only if verified programmed
-constexpr bool wheel_confirmed=false, outputs_enabled=false;
+// CLI: --vehicle --enable-outputs. Arduino IDE: explicitly change this to 1.
+// This requests physical PWM; it does NOT bypass calibration or ARM checks.
+#ifndef APEX_ENABLE_OUTPUTS
+#define APEX_ENABLE_OUTPUTS 0
+#endif
+static_assert(APEX_ENABLE_OUTPUTS==0 || APEX_ENABLE_OUTPUTS==1,"Outputs must be 0 or 1");
+constexpr bool wheel_confirmed=false, outputs_enabled=APEX_ENABLE_OUTPUTS;
 // Assumed upper bound of 30,000 motor RPM; shrink gap for a faster motor.
 constexpr uint64_t max_sample_gap_us=1000;
 constexpr float motor_revs_per_wheel_rev=0, loaded_circumference_m=0;

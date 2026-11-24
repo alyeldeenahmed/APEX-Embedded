@@ -1,3 +1,5 @@
+**Actuator build:** `python tools/build_firmware.py --vehicle --enable-outputs` includes physical ESC/servo PWM after calibration gates pass. See [output commissioning](CAR_INTEGRATION.md#4-enable-physical-commands-after-calibration). This is not an automatic ARM or a hardware acceptance claim.
+
 **Integration handoff (24 November 2026):** [Start here](INTEGRATION_START_HERE.md). Confirmed new pins, actual static steering values, capture instructions and remaining drive-enablement gates.
 
 **Current TT-02 vehicle build** — [MT6701 wiring, firmware upload and Pi commands](CAR_INTEGRATION.md). Use these assignments for the assembled car.

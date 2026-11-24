@@ -30,7 +30,7 @@ Confirmed profile: ESP32-S3 N16R8, MPU6050, motor-mounted MT6701, THW-1060-RTR, 
 - Measure or explicitly approve provisional steering rate and actuator response delays for MPC. Static endpoints do not establish dynamic response.
 - Calibrate drive-without-motion threshold/timeout; verify stop, loss of feedback, stale-command expiry and reset behavior with wheels raised.
 - Verify power branch under load, grounds and PWM signal levels. Software verification does not qualify the Pi crowbar, fuses, regulator or battery wiring.
-- Only then enable each confirmation gate and physical outputs in vehicle_config.h. This handoff does not enable them.
+- Only then complete each confirmation gate in vehicle_config.h and select the physical-output build: `python tools/build_firmware.py --vehicle --enable-outputs`. It writes build/vehicle-outputs/. With current missing calibration, that build still refuses physical PWM and ARM. See CAR_INTEGRATION.md.
 
 ## Agreements to close with other teams
 
@@ -40,4 +40,4 @@ Control and Perception/Omar: finalize command/status ROS relay types, topics, re
 
 ## Verification evidence
 
-Run `python tools/validate_software.py --firmware` for host tests and seven compile-only profiles (including the read-only encoder bench). The JSON report distinguishes PASS, FAIL and BLOCKED. These tests do not constitute hardware acceptance. No firmware upload, physical actuation, GitHub push or team message is performed by verification.
+Run `python tools/validate_software.py --firmware` for host tests and eight compile-only profiles (including the read-only encoder bench). The JSON report distinguishes PASS, FAIL and BLOCKED. These tests do not constitute hardware acceptance. No firmware upload, physical actuation, GitHub push or team message is performed by verification.

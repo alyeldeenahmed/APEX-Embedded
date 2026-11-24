@@ -15,16 +15,20 @@ mode.add_argument('--vehicle',action='store_true',help='Integrated IMU, encoder,
 parser.add_argument('--address',choices=['0x68','0x69'],default='0x68')
 parser.add_argument('--telemetry-hz',type=int,choices=[100,200],default=100)
 parser.add_argument('--wheel-diagnostics-v2',action='store_true',help='Opt-in proposed timing v2; peer acceptance required')
+parser.add_argument('--enable-outputs',action='store_true',help='Vehicle PWM profile; calibration and explicit ARM still required')
 args=parser.parse_args()
 if args.wheel_diagnostics_v2 and not args.vehicle: parser.error('Diagnostics require --vehicle')
+if args.enable_outputs and not args.vehicle: parser.error('Physical outputs require --vehicle')
 flags=f'-DAPEX_IMU_ADDRESS={args.address} -DAPEX_TELEMETRY_HZ={args.telemetry_hz}'
 if args.imu or args.bench or args.vehicle: flags+=' -DAPEX_USE_MPU6050=1'
 flags+=f' -DAPEX_VEHICLE={int(args.vehicle)}'
+flags+=f' -DAPEX_ENABLE_OUTPUTS={int(args.enable_outputs)}'
 if args.bench: flags+=' -DAPEX_IMU_BENCH=1'
 if args.wheel_diagnostics_v2: flags+=' -DAPEX_WHEEL_DIAGNOSTICS_V2=1'
 extra=['--build-property','build.extra_flags='+flags]
 output='vehicle' if args.vehicle else ('imu-bench' if args.bench else ('imu' if args.imu else 'simulation'))
 if args.encoder_bench: output='encoder-i2c-bench'
+if args.enable_outputs: output+='-outputs'
 if args.wheel_diagnostics_v2: output+='-wheel-v2'
 if args.telemetry_hz!=100: output+=f'-{args.telemetry_hz}hz'
 subprocess.run(["arduino-cli", "compile", "--fqbn", config["fqbn"], *extra,
