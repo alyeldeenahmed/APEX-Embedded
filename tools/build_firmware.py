@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 config = json.loads((ROOT / "firmware/build-config.json").read_text())
 parser=argparse.ArgumentParser(description=__doc__)
 mode=parser.add_mutually_exclusive_group()
+mode.add_argument('--encoder-bench',action='store_true',help='Read-only MT6701 I2C hand-turn test, no actuator output')
 mode.add_argument('--imu',action='store_true',help='Binary telemetry with MPU-6050')
 mode.add_argument('--bench',action='store_true',help='Standalone CSV IMU test, no binary packets')
 mode.add_argument('--vehicle',action='store_true',help='Integrated IMU, encoder, command endpoint; outputs disabled by default')
@@ -23,8 +24,9 @@ if args.bench: flags+=' -DAPEX_IMU_BENCH=1'
 if args.wheel_diagnostics_v2: flags+=' -DAPEX_WHEEL_DIAGNOSTICS_V2=1'
 extra=['--build-property','build.extra_flags='+flags]
 output='vehicle' if args.vehicle else ('imu-bench' if args.bench else ('imu' if args.imu else 'simulation'))
+if args.encoder_bench: output='encoder-i2c-bench'
 if args.wheel_diagnostics_v2: output+='-wheel-v2'
 if args.telemetry_hz!=100: output+=f'-{args.telemetry_hz}hz'
 subprocess.run(["arduino-cli", "compile", "--fqbn", config["fqbn"], *extra,
                 "--warnings", "all", "--output-dir", str(ROOT / 'build' / output),
-                str(ROOT / "firmware/telemetry_demo")], check=True)
+                str(ROOT / ("firmware/mt6701_i2c_bench" if args.encoder_bench else "firmware/telemetry_demo"))], check=True)

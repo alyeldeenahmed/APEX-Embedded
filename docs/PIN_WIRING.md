@@ -1,6 +1,6 @@
 # TT-02 integration wiring
 
-The current vehicle build follows the November engineering test schematic with the motor-mounted MT6701. See [final integration](../CAR_INTEGRATION.md) for the harness, power and signal assignments. Earlier W1 assignments apply only to their historical bench fixtures.
+The current vehicle build follows the November engineering test schematic with the motor-mounted MT6701. See [final integration](../CAR_INTEGRATION.md) for the harness, power and signal assignments. Current encoder interface is I2C: SDA GPIO10, SCL GPIO11, VDD 3V3, GND common; GPIO12 is unused. The IMU uses a separate bus on GPIO8/9. Earlier W1 assignments apply only to their historical bench fixtures.
 
 
 # Detailed pin wiring proposal W1

@@ -38,5 +38,13 @@
     "mapping": "Piecewise linear approximation using mean wheel angle",
     "dynamic_delay_measured": false,
     "steering_rate_measured": false
+  },
+  "encoder_interface": {
+    "type": "MT6701 I2C",
+    "sda_gpio": 10,
+    "scl_gpio": 11,
+    "address_7bit": "0x06",
+    "bus_hz": 400000,
+    "ssi_crc_and_field_status_available": false
   }
 }

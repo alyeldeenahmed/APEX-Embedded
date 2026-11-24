@@ -2,7 +2,8 @@
 #include "vehicle_core.h"
 namespace vehicle_config {
 // November test schematic, with MT6701 mounted at the motor.
-constexpr int encoder_clk=11,encoder_do=10,encoder_cs=12,servo=5,esc=4,pwm_enable=6;
+constexpr int encoder_scl=11,encoder_sda=10,servo=5,esc=4,pwm_enable=6;
+constexpr uint8_t encoder_address=0x06; // 7-bit default; 0x46 only if verified programmed
 constexpr bool wheel_confirmed=false, outputs_enabled=false;
 // Assumed upper bound of 30,000 motor RPM; shrink gap for a faster motor.
 constexpr uint64_t max_sample_gap_us=1000;

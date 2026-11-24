@@ -9,7 +9,7 @@ THW-1060-RTR brushed ESC and Tamiya Torque Tuned 54358. Owner label: 2-3S LiPo, 
 | Battery positive | Source fuse and accessible DC disconnect, then ESC battery positive; fuse/wiring selection must suit actual setup |
 | Battery negative | ESC battery negative using rated power wiring |
 | ESC motor pair | Motor two terminals; polarity establishes forward, verify with drive disconnected |
-| ESC receiver signal | Manual tester signal initially; later GPIO16 via verified level interface |
+| ESC receiver signal | Manual tester signal initially; GPIO4 in the current vehicle profile, via verified signal interface |
 | ESC receiver ground | Tester ground and common signal ground |
 | ESC BEC positive | Leave insulated unless deliberately powering compatible tester/servo; never Pi/ESP |
 | USB / ESP | Not required for first tester-only test; never feed6V to ESP |
@@ -21,6 +21,8 @@ THW-1060-RTR brushed ESC and Tamiya Torque Tuned 54358. Owner label: 2-3S LiPo, 
 3. Power the setup with a correctly protected compatible supply. Confirm BEC voltage and neutral behavior. Increase command in small controlled increments until first rotation; record pulse and direction. Return neutral immediately.
 
 4. Measure drive deadband and repeatable start threshold. Verify brake-versus-reverse mode using the actual procedure before any negative-force command. If reverse cannot be disabled, the existing brake-only adapter is not qualified; stop integration and resolve the mode/driver design.
+
+Motor supply correction (24 November 2026): Tamiya specifies 6.6-7.2 V for motor 54358 and 10 A at its recommended load. Do not connect the motor branch directly to the 12 V bench supply. Review the step-down model, startup capability and braking-energy handling before power-up. Source: https://www.tamiya.com/english/products/54358/index.html
 
 ## Measurements for Control
 

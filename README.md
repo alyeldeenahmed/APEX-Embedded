@@ -15,7 +15,7 @@ Embedded firmware and interface development for the APEX TT-02 graduation projec
 
 **Current milestone:** integrated embedded software implementation, pending physical
 validation and joint interface approval. `--vehicle` includes IMU acquisition,
-motor-mounted MT6701 SSI acquisition, independent telemetry, Control request parsing, session/epoch
+motor-mounted MT6701 I2C acquisition, independent telemetry, Control request parsing, session/epoch
 handling, replay/expiry enforcement, cancellation, status, acceleration-to-effort
 mapping, steering/ESC PWM adapters and task watchdog. Outputs remain disabled and
 calibration unset. The original three bench modes remain available.

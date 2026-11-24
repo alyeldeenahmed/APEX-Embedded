@@ -1,22 +1,25 @@
 #include <cassert>
-#include <initializer_list>
 #include "firmware/telemetry_demo/mt6701_core.h"
-
-// Independent polynomial long division, x^6 + x + 1, initial remainder zero.
-static uint32_t frame(unsigned angle, unsigned status) {
-  uint32_t bits=(angle<<10)|(status<<6), remainder=bits;
-  for(int i=23;i>=6;--i)
-    if(remainder & (uint32_t(1)<<i)) remainder ^= uint32_t(0x43)<<(i-6);
-  return bits|remainder;
-}
-int main() {
-  for(unsigned a=0;a<16384;++a) {
-    int decoded=-1;
-    assert(mt6701::unpack(frame(a,0),decoded) && decoded==int(a));
-    assert(mt6701::unpack(frame(a,4),decoded)); // push flag alone is permitted
-    for(unsigned fault: {1u,2u,3u,8u})
-      assert(!mt6701::unpack(frame(a,fault),decoded));
-    for(unsigned bit=0;bit<24;++bit)
-      assert(!mt6701::unpack(frame(a,0)^(uint32_t(1)<<bit),decoded));
+struct Bus {
+  int calls=0,fail=0; uint8_t high=0xab,low=0xcc;
+  bool read(uint8_t reg,uint8_t& value) {
+    ++calls; assert(reg==(calls==1?0x03:0x04));
+    if(calls==fail) return false;
+    value=calls==1?high:low; return true;
   }
+};
+int main() {
+  for(int angle=0;angle<16384;++angle)
+    for(int reserved=0;reserved<4;++reserved)
+      assert(mt6701::decode(uint8_t(angle>>6),uint8_t((angle<<2)|reserved))==angle);
+  Bus b; int angle=-1;
+  assert(mt6701::read_angle(b,angle) && b.calls==2 && angle==10995);
+  for(int failure=1;failure<=2;++failure) {
+    Bus bad; bad.fail=failure; angle=-1;
+    assert(!mt6701::read_angle(bad,angle) && angle==-1 && bad.calls==failure);
+  }
+  assert(mt6701::difference(0,16383)==1);
+  assert(mt6701::difference(16383,0)==-1);
+  assert(mt6701::difference(8192,0)==-8192); // ambiguous half-turn, driver rejects
+  assert(mt6701::difference(5,5)==0);
 }

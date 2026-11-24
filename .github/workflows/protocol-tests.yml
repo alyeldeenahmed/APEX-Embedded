@@ -41,6 +41,8 @@ jobs:
         run: python tools/build_firmware.py
       - name: Compile MPU-6050 acquisition mode
         run: python tools/build_firmware.py --imu
+      - name: Compile read-only MT6701 I2C bench
+        run: python tools/build_firmware.py --encoder-bench
       - name: Compile standalone IMU bench mode
         run: python tools/build_firmware.py --bench
       - name: Compile integrated vehicle firmware
