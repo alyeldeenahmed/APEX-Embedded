@@ -20,6 +20,37 @@ No ROS dependency runs on the ESP32. Perception owns its ROS topics and clock ma
 The bench CLI is not an autonomous Safety supervisor and must not run concurrently
 with another serial-port owner. Opening the port may reset the MCU.
 
+## Telemetry receipts and link loss · 27 November 2026
+
+Use the updated ESP firmware and PySerial client together. A complete report is a
+type 01 data frame followed by a CRC-valid type 03 timing frame with the same
+16-bit sequence in the same confirmed boot. The Pi replies once per matched pair,
+including pairs reporting invalid sensors. At 100 Hz this typically means 100
+receipts per second. Sync, status, commands, CRC failures and orphans generate no receipt.
+
+| Pi → ESP offset | Encoding | Value |
+|---|---|---|
+| 0–3 | bytes | A5 5A 12 01 |
+| 4–7 | uint32 LE | Boot nonce from current receipt-capable status |
+| 8–9 | uint16 LE | Pair sequence |
+| 10–17 | uint64 LE | Exact timing frame report_us |
+| 18–19 | uint16 LE | CRC-16/CCITT-FALSE over bytes 2–17 |
+
+The ESP admits only full UART writes of the 96-byte pair to a four-entry window.
+A matching fresh receipt acknowledges all outstanding entries through its match.
+The boot nonce and report time distinguish sequence wrap and old traffic. Entering
+the fourth outstanding entry trips locally. Complete failure to queue a pair for
+four configured report periods also trips. At the 100 Hz default the separate
+transmit-stall guard is 40 ms. Partial writes increment the drop counter.
+
+On loss the ESP revokes the session, sends calibrated ESC neutral, suppresses
+steering pulses and attempts to send code 17 (link_lost). Periodic status continues
+to expose the fault and window depth while the link is lost. An acknowledgement
+of a recent pair at or after the trip can restore link health. A fresh authority
+context and explicit ARM are required for motion. No receipt extends a command
+deadline. Pi integration must service the serial port continuously while MPC or
+ROS is idle. Use the single-owner instructions in INTEGRATION_START_HERE.md.
+
 ## Request (64 bytes)
 
 All multibyte values little-endian; float values IEEE-754 float32, finite only.
@@ -90,15 +121,17 @@ requires explicit rearming. Once expired, a fresh SET cannot silently rearm.
 
 Offsets 0–3 and CRC are as above. Offset 4 is result code, offset 5 flags:
 bit0 context installed, bit1 armed, bit2 physical adapter available, bit3 output
-enabled. Bytes 6–7 zero. Offsets 8/12/16/20 are boot/latest-consumed sequence/session/
+enabled, bit4 receipt link lost and bit5 receipt-watchdog capability. Byte 6 is
+the outstanding-pair count (0–4) and byte 7 is zero. Legacy status lacks bit5.
+Offsets 8/12/16/20 are boot/latest-consumed sequence/session/
 epoch. Offset 24 is response command ID; 28 last issued command ID (historical when
 disarmed). Offset 32 uint64 report time; 40 uint64 last initial command-issuance
 time. Offsets 48/52 are current commanded angle and normalized effort. Offset 56
 uint16 saturated parser-error count; offset 58 uint32 transport-drop count.
 
-Codes in numeric order 0–16: IDLE, INSTALLED, ACCEPTED, APPLIED, SIMULATED,
+Codes in numeric order 0–17: IDLE, INSTALLED, ACCEPTED, APPLIED, SIMULATED,
 CANCELLED, REVOKED, BAD_BOOT, REPLAY, BAD_CONTEXT, BAD_TIME, BAD_VALUE, NOT_READY,
-NOT_ARMED, UNKNOWN_TARGET, FAULT, EXPIRED.
+NOT_ARMED, UNKNOWN_TARGET, FAULT, EXPIRED, LINK_LOST.
 
 APPLIED means API writes succeeded, not pulse-edge timing, measured steering,
 achieved acceleration or brake force. Angle may continue ramping after that time;
@@ -121,8 +154,9 @@ pulse endpoints. Zero/default calibration cannot arm. Both mappings assume an
 adequate linear calibration over the intended operating envelope; hardware tests
 must determine whether speed/battery-dependent tables are required.
 
-When enabled and calibrated, fault/disarm requests neutral ESC and centered servo.
-PWM continues at these values. A task watchdog requests MCU reset after 250 ms of
+When physically enabled and calibrated, disarm requests a calibrated neutral ESC
+pulse and holds the servo signal low. ARM at zero requests steering centre.
+A task watchdog requests MCU reset after 250 ms of
 an unresponsive loop; this is separate from the <=100 ms command expiry checks.
 PWM hardware can hold its previous signal during a stalled loop until reset.
 No safe-stopping or reset-pin electrical behavior is claimed. Independent physical

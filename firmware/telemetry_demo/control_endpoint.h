@@ -3,7 +3,7 @@
 #include "command_protocol.h"
 namespace endpoint {
 enum Code:uint8_t { Idle,Installed,Accepted,Applied,Simulated,Cancelled,Revoked,
-  BadBoot,Replay,BadContext,BadTime,BadValue,NotReady,NotArmed,UnknownTarget,Fault,Expired };
+  BadBoot,Replay,BadContext,BadTime,BadValue,NotReady,NotArmed,UnknownTarget,Fault,Expired,LinkLost };
 // No future queue: latest accepted setpoint takes effect on the next service tick.
 class Engine {
   vehicle::Controller core_;
@@ -24,7 +24,9 @@ public:
   uint32_t held() const { return held_; }
   bool armed() const { return armed_; }
   void stop() { core_.stop(); armed_=false; pending_valid_=false; output=vehicle::Output{}; }
-  Code receive(const control_wire::Request& r,uint64_t now,bool ready) {
+  void link_lost() { stop(); installed_=false; held_=0; code=LinkLost; }
+  void link_restored() { if(code==LinkLost) code=Idle; }
+  Code receive(const control_wire::Request& r,uint64_t now,bool ready,bool receipt_ready=true) {
     response_id=r.id;
     if(r.boot!=boot_) return code=BadBoot;
     if(seen_ && (uint32_t(r.sequence-sequence_)==0 || uint32_t(r.sequence-sequence_)>=0x80000000u)) return code=Replay;
@@ -34,6 +36,8 @@ public:
     if(r.action<1||r.action>5||!r.id||!isfinite(r.steering)||!isfinite(r.acceleration)) return code=BadValue;
     if(r.created>now||now-r.created>100000||r.deadline<=now||r.deadline-now>100000||r.deadline<=r.created) return code=BadTime;
     if(r.action!=control_wire::Set && (r.steering!=0||r.acceleration!=0)) return code=BadValue;
+    if(!receipt_ready && (r.action==control_wire::Install || r.action==control_wire::Arm ||
+                          r.action==control_wire::Set)) return code=NotReady;
     if(r.action==control_wire::Install) {
       if(!r.session||!r.epoch) return code=BadContext;
       // Revocation must not allow an older authorization context to be reinstalled.
@@ -70,9 +74,12 @@ public:
       response_id=held_; code=driver.physical()?Applied:Simulated; return true; }
     return false;
   }
-  void status(uint8_t* p,uint64_t now,uint32_t parser_errors,uint32_t tx_drops,bool physical) const {
+  void status(uint8_t* p,uint64_t now,uint32_t parser_errors,uint32_t tx_drops,bool physical,
+              bool link_lost=false,uint8_t unacknowledged=0) const {
     memset(p,0,64); p[0]=0xa5;p[1]=0x5a;p[2]=0x11;p[3]=1;p[4]=code;
-    p[5]=(installed_?1:0)|(armed_?2:0)|(physical?4:0)|(output.enabled?8:0);
+    p[5]=(installed_?1:0)|(armed_?2:0)|(physical?4:0)|(output.enabled?8:0)|
+         (link_lost?16:0)|0x20; // Capability: this firmware enforces telemetry receipts.
+    p[6]=unacknowledged;
     telemetry::u32(p+8,boot_);telemetry::u32(p+12,sequence_);telemetry::u32(p+16,session_);
     telemetry::u32(p+20,epoch_);telemetry::u32(p+24,response_id);telemetry::u32(p+28,held_);
     control_wire::w64(p+32,now);control_wire::w64(p+40,applied_at);

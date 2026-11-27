@@ -85,11 +85,13 @@ void service() {
   const uint64_t read_start=uint64_t(esp_timer_get_time());
   // Avoid labeling a much newer register sample with an old interrupt timestamp.
   if (read_start<stamp || read_start-stamp>=1000) { ++late_reads; device.invalidate(); return; }
-  const bool captured=device.capture(stamp);
-  uint32_t after;
-  portENTER_CRITICAL(&mux); after=edge_count; portEXIT_CRITICAL(&mux);
-  // If data-ready changed during the transaction, association is ambiguous.
-  if (after!=count) { ++ambiguous_reads; device.invalidate(); return; }
+  const bool captured=device.capture(stamp,[count]() {
+    uint32_t after;
+    portENTER_CRITICAL(&mux); after=edge_count; portEXIT_CRITICAL(&mux);
+    if(after==count) return true;
+    ++ambiguous_reads;
+    return false;
+  });
   if (captured && !first_sample) { first_sample=true; first_sample_time=stamp; }
 }
 bool fill(telemetry::Sample& packet,uint64_t now) {

@@ -1,4 +1,5 @@
 #include "firmware/telemetry_demo/control_endpoint.h"
+#include "firmware/telemetry_demo/receipt_watchdog.h"
 #include <cassert>
 struct Driver {
   bool hardware=false,ok=true; vehicle::Output last;
@@ -64,4 +65,44 @@ int main() {
   uint8_t status[64];e.status(status,200000,2,3,false);
   assert(status[2]==0x11&&r32(status+8)==42&&r32(status+58)==3);
   assert(telemetry::crc(status+2,60)==(uint16_t(status[62])|uint16_t(status[63])<<8));
+
+  // Arm a simulated calibrated vehicle, withhold replies, then reconnect.
+  Engine car(42); calibrated(car); Driver driver;
+  ReceiptWatchdog guard;
+  guard.begin(42, 1000, 10000);
+  Request cmd{}; cmd.boot=42; cmd.session=1; cmd.epoch=1; cmd.id=1;
+  cmd.action=Install; cmd.deadline=99000; cmd.sequence=1;
+  assert(car.receive(cmd,1000,true,guard.ready())==NotReady);
+  assert(!guard.queued(11,1000,1000));
+  assert(!guard.acknowledge(Receipt{41,11,1000},1100));
+  assert(!guard.acknowledge(Receipt{42,11,999},1100));
+  assert(guard.acknowledge(Receipt{42,11,1000},1100));
+  ++cmd.sequence; assert(car.receive(cmd,1100,true,guard.ready())==Installed);
+  ++cmd.sequence; cmd.action=Arm; assert(car.receive(cmd,1200,true,guard.ready())==Accepted);
+  assert(car.tick(1200,true,driver));
+  ++cmd.sequence; cmd.action=Set; cmd.acceleration=1; cmd.steering=.2f;
+  assert(car.receive(cmd,11000,true,guard.ready())==Accepted);
+  assert(car.tick(11000,true,driver) && driver.last.effort>0 && driver.last.steering>0);
+  for(uint16_t seq=12; seq<=15; ++seq) {
+    const uint64_t t=1000+(seq-11)*10000;
+    if(guard.queued(seq,t,t)) {
+      assert(seq==15);
+      car.link_lost(); driver.write(car.output);
+    } else { assert(seq<15 && car.armed()); }
+  }
+  assert(!driver.last.enabled && driver.last.effort==0 && driver.last.steering==0);
+  car.status(status,41000,0,0,false,guard.lost(),guard.pending());
+  assert(status[4]==LinkLost && status[5]==0x30 && status[6]==4);
+  assert(!guard.acknowledge(Receipt{42,14,31000},41200)); // predates trip
+  assert(guard.acknowledge(Receipt{42,15,41000},41200));
+  car.link_restored(); assert(!car.armed());
+  ++cmd.sequence; assert(car.receive(cmd,41500,true,guard.ready())==BadContext);
+  cmd.acceleration=cmd.steering=0; cmd.action=Install; ++cmd.sequence;
+  assert(car.receive(cmd,42000,true,guard.ready())==BadContext);
+  ++cmd.epoch; ++cmd.sequence; assert(car.receive(cmd,42100,true,guard.ready())==Installed);
+  assert(!car.armed());
+  // UART unable to queue complete pairs: independent transmit-stall backstop.
+  assert(!guard.check_stall(80999)); assert(guard.check_stall(81000));
+  assert(!guard.check_stall(81001)); assert(!guard.ready());
+  assert(!guard.acknowledge(Receipt{42,15,41000},81001));
 }

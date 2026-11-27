@@ -1,6 +1,6 @@
 **Actuator build:** `python tools/build_firmware.py --vehicle --enable-outputs` includes physical ESC/servo PWM after calibration gates pass. See [output commissioning](CAR_INTEGRATION.md#4-enable-physical-commands-after-calibration). This is not an automatic ARM or a hardware acceptance claim.
 
-**Integration handoff (24 November 2026):** [Start here](INTEGRATION_START_HERE.md). Confirmed new pins, actual static steering values, capture instructions and remaining drive-enablement gates.
+**ESP32–Pi integration · 27 November 2026.** [Upload the ESP sketch and verify the four-message receipt watchdog on Windows or Pi](INTEGRATION_START_HERE.md). The vehicle firmware and Pi serial client must be deployed together.
 
 **Current TT-02 vehicle build** — [MT6701 wiring, firmware upload and Pi commands](CAR_INTEGRATION.md). Use these assignments for the assembled car.
 
@@ -28,8 +28,7 @@ calibration unset. The original three bench modes remain available.
 - `python tools/build_firmware.py --vehicle`: compile integrated N16R8 firmware.
 
 No physical readings, motor response, timing guarantees or safe-stopping claims
-are established by software tests. The single-channel sensor selection cannot
-provide measured direction; signed validity requires the documented quadrature setup.
+are established by software tests. The current motor-mounted MT6701 supplies signed angle changes. Encoder continuity and installation checks still gate estimator and actuator use.
 
 [Milestone 4 passing builds, tests and bench binary artifact](https://github.com/alyeldeenahmed/APEX-Embedded/actions/runs/41684429013)
 

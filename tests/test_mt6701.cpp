@@ -22,4 +22,19 @@ int main() {
   assert(mt6701::difference(16383,0)==-1);
   assert(mt6701::difference(8192,0)==-8192); // ambiguous half-turn, driver rejects
   assert(mt6701::difference(5,5)==0);
+  mt6701::AngleTracker tracker;
+  tracker.observe(2, 100, 250, 1000, -1);
+  assert(!tracker.state.tracking);
+  tracker.observe(16383, 500, 650, 1000, -1);
+  assert(tracker.state.tracking && tracker.state.count==3 && tracker.state.acquired_us==650);
+  tracker.read_failed();
+  assert(!tracker.state.tracking && tracker.state.read_errors==1);
+  tracker.observe(5000, 950, 1050, 1000, -1);
+  assert(!tracker.state.tracking && tracker.state.count==3);
+  tracker.observe(4997, 1400, 1550, 1000, -1);
+  assert(tracker.state.tracking && tracker.state.count==6);
+  tracker.observe(4900, 2800, 2960, 1000, -1);
+  assert(!tracker.state.tracking && tracker.state.count==6);
+  tracker.observe((4900+8192)%16384, 3200, 3350, 1000, -1);
+  assert(!tracker.state.tracking && tracker.state.count==6);
 }

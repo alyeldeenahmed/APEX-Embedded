@@ -2,6 +2,7 @@
 // Vehicle outputs require explicit confirmed calibration in vehicle_config.h.
 #include <Arduino.h>
 #include <esp_timer.h>
+#include <esp_log.h>
 #include "packet.h"
 #ifndef APEX_TELEMETRY_HZ
 #define APEX_TELEMETRY_HZ 100
@@ -39,7 +40,10 @@ void setup() {
   Serial.setTxBufferSize(2048);
   Serial.begin(921600);
 #if APEX_VEHICLE
-  vehicle_board::begin();
+  // Preserve binary framing on UART0 during a sensor fault; the driver still
+  // counts I2C failures and marks the affected acquisition interval invalid.
+  esp_log_level_set("i2c.master",ESP_LOG_NONE);
+  vehicle_board::begin(data_period);
 #endif
 #if APEX_USE_MPU6050
   imu_board::begin();
@@ -71,7 +75,7 @@ void loop() {
     sample.accel[2] = 9.80665f;
 #endif
 #if APEX_VEHICLE
-    vehicle_board::fill(sample,now);
+    const bool wheel_continuous=vehicle_board::fill(sample,now);
 #endif
     if(available) {
       if(first_packet) sample.flags|=0x40;
@@ -79,9 +83,6 @@ void loop() {
       uint8_t packet[96]; // Queue data + timing together, with the same sequence.
       telemetry::encode(packet,sequence,sample);
       const auto& reading=imu_board::device.reading();
-      const bool wheel_continuous=vehicle_board::wheel.continuous_interval &&
-        vehicle_board::encoder.tracking &&
-        vehicle_board::wheel.previous_gaps==vehicle_board::encoder.gaps;
       const uint8_t present=(reading.present?1:0)|(wheel_continuous?2:0)|
         (vehicle_board::driver.last_write?4:0);
       telemetry::encode_timing(packet+54,sequence,present,now,
@@ -90,15 +91,16 @@ void loop() {
         (vehicle_board::motion.suspect?2:0) |
         (wheel_health::MotionMonitor::configured(vehicle_config::motion_effort_threshold,vehicle_config::motion_timeout_us)?4:0),
         vehicle_config::wheel_diagnostics_v2);
-      ++sequence;
+      const uint16_t pair_sequence=sequence++;
+      if(vehicle_board::send(packet,sizeof(packet))) {
+        first_packet=false;
+        vehicle_board::pair_queued(pair_sequence,now);
+      }
 #else
       uint8_t packet[54];telemetry::encode(packet,sequence++,sample);
-#endif
       if(Serial.availableForWrite()>=int(sizeof(packet))) {
-        Serial.write(packet, sizeof(packet));first_packet=false;
+        if(Serial.write(packet,sizeof(packet))==sizeof(packet)) first_packet=false;
       }
-#if APEX_VEHICLE
-      else ++vehicle_board::tx_drops;
 #endif
     }
 #endif

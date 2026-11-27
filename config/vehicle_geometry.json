@@ -53,7 +53,9 @@
     "source": "https://www.tamiya.com/cms/english/rc/rcmanual/tt02.pdf",
     "diameter": "65 mm supplied by Aly",
     "circumference": "pi times diameter; loaded rollout not measured",
-    "forward_sign_confirmed": false,
+    "forward_sign_confirmed": true,
+    "encoder_sign": -1,
+    "forward_sign_evidence": "Aly identified the forward motor rotation; capture integration_test_27574.jsonl showed positive speed after sign reversal. Reliable I2C tracking remains under test.",
     "metres_per_encoder_count": 1.5070851150629789e-06
   }
 }

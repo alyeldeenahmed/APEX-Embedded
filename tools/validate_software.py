@@ -31,6 +31,7 @@ def main():
     compiler = shutil.which(os.environ.get('CXX', 'g++'))
     if compiler:
         run('C++/Python packet compatibility', [sys.executable, 'tools/check_cpp_packets.py'])
+        run('Pi/ESP32 receipt round trip', [sys.executable, 'tools/check_pi_receipts.py'])
         with tempfile.TemporaryDirectory() as tmp:
             for name in ('mpu6050', 'vehicle', 'endpoint', 'mt6701'):
                 exe = str(Path(tmp)/('test_'+name+('.exe' if os.name == 'nt' else '')))

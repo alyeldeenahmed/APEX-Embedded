@@ -46,6 +46,10 @@ int main() {
   assert(near(r.accel[0],9.80665f) && near(r.accel[1],-9.80665f));
   assert(near(r.accel[2],4.903325f));
   assert(near(r.gyro[0],1.74532925f) && near(r.gyro[1],-1.74532925f));
+  // A burst which overlaps a new data-ready edge cannot claim a new source stamp.
+  const auto samples=dev.diag.samples;
+  assert(!dev.capture(301000, [] { return false; }));
+  assert(!dev.reading().valid && dev.reading().timestamp==300000 && dev.diag.samples==samples);
   assert(imu::fresh(r,305000) && !imu::fresh(r,305001));
   assert(!imu::fresh(r,299999));
   const imu::Axes rotation={{1,0,2},{1,-1,1}};

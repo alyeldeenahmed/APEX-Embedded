@@ -6,6 +6,7 @@
 #include <esp_task_wdt.h>
 #include "vehicle_config.h"
 #include "control_endpoint.h"
+#include "receipt_watchdog.h"
 #include "encoder_math.h"
 #include "wheel_health.h"
 #include "motor_encoder.h"
@@ -19,20 +20,22 @@ struct WheelState {
   float speed=0;
   bool valid=false, initialized=false, continuous_interval=false;
   void capture(uint64_t now,bool driven,float effort) {
-    const uint32_t current=encoder.count;
-    const bool continuous=encoder.tracking && previous_gaps==encoder.gaps;
-    previous_gaps=encoder.gaps;
-    now=uint64_t(esp_timer_get_time());
+    const auto reading=encoder.snapshot();
+    const uint32_t current=reading.count;
+    const bool continuous=reading.tracking && previous_gaps==reading.gaps;
+    previous_gaps=reading.gaps;
     const auto delta=encoder_math::difference(current,count);
     motion.update(now,driven,effort,delta!=0,motion_effort_threshold,motion_timeout_us);
-    continuous_interval=initialized && continuous;
-    const bool calculable=wheel_health::magnitude_valid(initialized,now,stamp,continuous,true,
+    // The count and this timestamp come from the same completed acquisition.
+    const uint64_t latch=reading.acquired_us;
+    const bool calculable=wheel_health::magnitude_valid(initialized,latch,stamp,continuous,true,
                                         metres_per_count,motion.suspect);
+    continuous_interval=calculable;
     valid=calculable && wheel_confirmed;
     // Report nominal speed for commissioning even before direction confirmation.
     // Consumers must still honor the wheel-valid bit. Invalid intervals are zero/invalid.
-    speed=calculable ? float(delta)*metres_per_count*1e6f/float(now-stamp) : 0;
-    count=current; stamp=now; initialized=encoder.tracking;
+    speed=calculable ? float(delta)*metres_per_count*1e6f/float(latch-stamp) : 0;
+    count=current; stamp=latch; initialized=reading.tracking;
   }
 } wheel;
 class Driver {
@@ -65,29 +68,53 @@ public:
     const auto c=calibration();
     const float s=servo_center_us+fabsf(angle)/c.max_angle*((angle>=0?servo_left_us:servo_right_us)-servo_center_us);
     const float e=esc_neutral_us+fabsf(effort)*((effort>=0?esc_drive_us:esc_brake_us)-esc_neutral_us);
-    const bool ok=pulse(servo,s)&pulse(esc,e);
-    if(ok) { last_write=uint64_t(esp_timer_get_time()); applied_effort=effort; applied_enabled=out.enabled; }
-    if(!ok) { digitalWrite(pwm_enable,LOW); pulse(servo,servo_center_us);pulse(esc,esc_neutral_us);failed_=true; }
-    return ok;
+    // A disarmed servo gets a continuously low signal. Centering it here would
+    // command a fresh physical movement on link loss or link recovery.
+    const bool steer_ok=out.enabled ? pulse(servo,s) : ledcWrite(servo,0);
+    const bool drive_ok=pulse(esc,e);
+    if(steer_ok && drive_ok) {
+      last_write=out.enabled?uint64_t(esp_timer_get_time()):0;
+      applied_effort=effort; applied_enabled=out.enabled;
+      return true;
+    }
+    digitalWrite(pwm_enable,LOW);
+    ledcWrite(servo,0); pulse(esc,esc_neutral_us);
+    applied_enabled=false; applied_effort=0; last_write=0; failed_=true;
+    return false;
   }
 } driver;
 endpoint::Engine* engine=nullptr;
 control_wire::Parser parser;
+endpoint::ReceiptWatchdog receipts;
 uint32_t tx_drops=0;
 uint64_t next_tick=0,next_status=0;
 bool watchdog_ok=false;
 bool send(const uint8_t* p,unsigned n) {
-  if(Serial.availableForWrite()<int(n)) { ++tx_drops;return false; }
-  return Serial.write(p,n)==n;
+  if(Serial.availableForWrite()>=int(n) && Serial.write(p,n)==n) return true;
+  ++tx_drops;
+  return false;
 }
 void status(uint64_t now) {
-  uint8_t p[64];engine->status(p,now,parser.errors,tx_drops,driver.physical());send(p,64);
+  uint8_t p[64];
+  engine->status(p,now,parser.errors,tx_drops,driver.physical(),receipts.lost(),receipts.pending());
+  send(p,64);
+}
+void trip_link(uint64_t now) {
+  engine->link_lost();
+  driver.write(engine->output);
+  status(now);
+}
+void pair_queued(uint16_t seq,uint64_t report_us) {
+  const uint64_t now=uint64_t(esp_timer_get_time());
+  if(receipts.check_stall(now)) trip_link(now);
+  if(receipts.queued(seq,report_us,now)) trip_link(now);
 }
 bool healthy(uint64_t now) {
+  const auto reading=encoder.snapshot();
   const bool direction_safe=wheel_health::MotionMonitor::configured(motion_effort_threshold,motion_timeout_us);
-  return encoder.tracking && wheel.previous_gaps==encoder.gaps && direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
+  return receipts.ready() && reading.tracking && wheel.previous_gaps==reading.gaps && direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
 }
-void begin() {
+void begin(uint64_t telemetry_period_us) {
   static endpoint::Engine instance(esp_random());engine=&instance;engine->calibration()=calibration();
   encoder.begin();
   driver.begin();
@@ -96,16 +123,27 @@ void begin() {
   if(err==ESP_ERR_INVALID_STATE) err=esp_task_wdt_reconfigure(&cfg);
   watchdog_ok=err==ESP_OK && (esp_task_wdt_status(nullptr)==ESP_OK || esp_task_wdt_add(nullptr)==ESP_OK);
   next_tick=next_status=uint64_t(esp_timer_get_time());
+  receipts.begin(engine->boot(),next_tick,telemetry_period_us);
 }
 void service() {
   uint64_t now=uint64_t(esp_timer_get_time());
-  encoder.poll(now);
+  if(receipts.check_stall(now)) trip_link(now);
+  // Encoder acquisition runs independently on core 0.
   // Bounded receive work: a hostile/noisy stream cannot monopolize the loop.
   for(unsigned budget=0;budget<128&&Serial.available();++budget) {
-    control_wire::Request r;
+    control_wire::Request r{};
+    control_wire::Receipt ack{};
     now=uint64_t(esp_timer_get_time());
-    if(parser.feed(uint8_t(Serial.read()),now,r)) {
-      engine->receive(r,now,healthy(now));
+    const auto kind=parser.feed(uint8_t(Serial.read()),now,r,ack);
+    if(kind==control_wire::Parser::Kind::Ack) {
+      const bool was_ready=receipts.ready();
+      if(receipts.acknowledge(ack,now) && !was_ready) {
+        engine->link_restored();
+        status(now);
+      }
+    }
+    if(kind==control_wire::Parser::Kind::Command) {
+      engine->receive(r,now,healthy(now),receipts.ready());
       // Revoke/install/cancel outputs take effect before acknowledgement.
       engine->tick(uint64_t(esp_timer_get_time()),healthy(now),driver);
       status(uint64_t(esp_timer_get_time()));
@@ -125,16 +163,20 @@ void service() {
   if(now>=next_status) { status(now);next_status=now+100000; }
   if(watchdog_ok) esp_task_wdt_reset();
 }
-void fill(telemetry::Sample& s,uint64_t now) {
+bool fill(telemetry::Sample& s,uint64_t now) {
+  const auto reading=encoder.snapshot();
   // Independent ages refer to transmission time (proposed v0.1 clarification).
   s.ticks=int32_t(wheel.count);s.speed=wheel.speed;
-  const uint64_t age=now>=wheel.stamp?now-wheel.stamp:65535;
+  const uint64_t age=wheel.stamp && now>=wheel.stamp?now-wheel.stamp:65535;
   s.wheel_age=uint16_t(age>65535?65535:age);
-  if(wheel.valid && encoder.tracking && wheel.previous_gaps==encoder.gaps && age<=25000) s.flags|=2;
+  const bool wheel_present=wheel.continuous_interval && reading.tracking &&
+      wheel.previous_gaps==reading.gaps && age<=25000;
+  if(wheel.valid && wheel_present) s.flags|=2;
   s.steering=engine->output.steering;
   const uint64_t steer_age=driver.last_write&&now>=driver.last_write?now-driver.last_write:65535;
   s.steer_age=uint16_t(steer_age>65535?65535:steer_age);
   if(driver.physical()&&engine->output.enabled) s.flags|=4;
   // Never set measured-steering or standstill from an unobservable condition.
+  return wheel_present;
 }
 }

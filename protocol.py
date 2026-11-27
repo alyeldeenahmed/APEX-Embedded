@@ -38,6 +38,48 @@ def sync_packet(timestamp):
     return frame(struct.pack("<BBQ", 2, 1, timestamp))
 
 
+class TelemetryReceipts:
+    """Feed ESP Decoder events in wire order from the process that owns the port.
+
+    Return a receipt only for a complete, CRC-checked pair in a confirmed boot.
+    Receipt indicates successful transport even when the sensor validity bits are 0.
+    """
+    def __init__(self):
+        self.boot = None
+        self.pending_sequence = None
+        self.last_report_us = None
+
+    def feed(self, event):
+        kind = event['type']
+        if kind == 'status':
+            boot = event['boot'] if event['receipt_watchdog'] else None
+            if self.boot != boot:
+                self.boot = boot
+                self.pending_sequence = None
+                self.last_report_us = None
+            return None
+        if kind == 'data':
+            if event['flags'] & 64 and self.last_report_us is not None:
+                # First data packet from a boot whose status we may have missed.
+                self.boot = None
+                self.last_report_us = None
+            self.pending_sequence = event['seq'] if self.boot is not None else None
+            return None
+        if kind != 'timing':
+            return None
+        sequence, self.pending_sequence = self.pending_sequence, None
+        if sequence is None or event['seq'] != sequence:
+            return None
+        stamp = event['report_us']
+        if self.last_report_us is not None and stamp <= self.last_report_us:
+            if stamp < self.last_report_us:
+                self.boot = None  # Wait for boot status after a clock reversal.
+                self.last_report_us = None
+            return None
+        self.last_report_us = stamp
+        return frame(struct.pack('<BBIHQ', 0x12, 1, self.boot, sequence, stamp))
+
+
 def timing_packet(seq,report_us,imu_us,wheel_us,steering_us,present=0,diagnostics=0,version=1):
     if present & ~7: raise ValueError('Reserved presence flags')
     if version not in (1,2) or diagnostics & ~7 or (version==1 and diagnostics):

@@ -7,6 +7,12 @@
 namespace imu {
 constexpr float kGravity = 9.80665f;
 constexpr float kRadiansPerDegree = 0.017453292519943295f;
+// MPU-6050 register map, sections 4.3–4.5. Both sensors share the DLPF setting.
+constexpr uint8_t kDlpf42Hz = 3;       // Gyro 42 Hz, accelerometer 44 Hz.
+constexpr uint8_t kGyro1000Dps = 2 << 3;
+constexpr uint8_t kAccel4g = 1 << 3;
+constexpr float kAccelCountsPerG = 8192.0f;
+constexpr float kGyroCountsPerDps = 32.8f;
 constexpr uint64_t kFreshnessUs = 5000;  // Bench proposal, not an agreed timeout.
 struct Reading {
   float accel[3] = {}, gyro[3] = {};
@@ -22,8 +28,8 @@ inline Reading convert(const uint8_t* p, uint64_t stamp) {
   r.timestamp = stamp; r.present = true; r.valid = true;
   for (unsigned i = 0; i < 3; ++i) {
     const int32_t a = signed_word(p + 2*i), g = signed_word(p + 8 + 2*i);
-    r.accel[i] = float(a) * (kGravity / 8192.0f);
-    r.gyro[i] = float(g) * (kRadiansPerDegree / 32.8f);
+    r.accel[i] = float(a) * (kGravity / kAccelCountsPerG);
+    r.gyro[i] = float(g) * (kRadiansPerDegree / kGyroCountsPerDps);
     if (a == -32768 || a == 32767 || g == -32768 || g == 32767) r.clipped = true;
   }
   r.valid = !r.clipped;
@@ -66,7 +72,7 @@ inline uint8_t config_reg(unsigned i) {
   return regs[i];
 }
 inline uint8_t config_value(unsigned i) {
-  const uint8_t values[]={0,0,0,0,3,0x10,0x08,0,1,1};
+  const uint8_t values[]={0,0,0,0,kDlpf42Hz,kGyro1000Dps,kAccel4g,0,1,1};
   return values[i];
 }
 template<class Bus> class Mpu6050 {
@@ -108,7 +114,8 @@ template<class Bus> class Mpu6050 {
       audit_=0; failures_=0; if(generation_++) ++diag.recoveries;
     }
   }
-  bool capture(uint64_t stamp) {
+  bool capture(uint64_t stamp) { return capture(stamp, [] { return true; }); }
+  template<class SameEdge> bool capture(uint64_t stamp, SameEdge same_edge) {
     if (!ready()) return false;
     uint8_t bytes[14];
     if (!bus_.read(0x3B,bytes,sizeof(bytes))) {
@@ -116,7 +123,11 @@ template<class Bus> class Mpu6050 {
       if(++failures_>=3) fail(stamp,Fault::Bus);
       return false;
     }
-    failures_=0; last_read_=stamp; ++diag.samples;
+    failures_=0;
+    // A second data-ready edge during I2C makes the register timestamp ambiguous.
+    // Keep the previous source stamp until another sample is positively identified.
+    if(!same_edge()) { invalidate(); return false; }
+    last_read_=stamp; ++diag.samples;
     last_=convert(bytes,stamp); if(last_.clipped) ++diag.clipped;
     return true;
   }

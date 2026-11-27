@@ -21,7 +21,7 @@ def crc(data):
 
 ACTIONS = dict(install=1, arm=2, set=3, cancel=4, revoke=5)
 CODES = ('idle installed accepted applied simulated cancelled revoked bad_boot replay '
-         'bad_context bad_time bad_value not_ready not_armed unknown_target fault expired').split()
+         'bad_context bad_time bad_value not_ready not_armed unknown_target fault expired link_lost').split()
 
 
 def encode(*, action, boot, sequence, session, epoch, command_id, created_us,
@@ -49,13 +49,14 @@ def encode(*, action, boot, sequence, session, epoch, command_id, created_us,
 def status(p):
     if len(p) != 64 or p[:4] != b'\xa5\x5a\x11\x01' or crc(p[2:62]) != struct.unpack_from('<H', p, 62)[0]:
         raise ValueError('Invalid status frame')
-    if p[4] >= len(CODES) or p[5] & 0xf0 or p[6] or p[7]:
+    if p[4] >= len(CODES) or p[5] & 0xc0 or p[6] > 4 or p[7]:
         raise ValueError('Unsupported status')
     values = struct.unpack_from('<6I2Q2fHI', p, 8)
     keys = ('boot', 'sequence', 'session', 'epoch', 'command_id', 'held_id',
             'now_us', 'applied_us', 'steering', 'effort', 'parser_errors', 'tx_drops')
     result = dict(zip(keys, values))
-    result.update(code=CODES[p[4]], flags=p[5])
+    result.update(code=CODES[p[4]], flags=p[5], link_lost=bool(p[5] & 0x10),
+                  receipt_watchdog=bool(p[5] & 0x20), unacked_pairs=p[6])
     if not all(math.isfinite(result[k]) for k in ('steering', 'effort')):
         raise ValueError('Nonfinite output')
     return result
@@ -105,22 +106,27 @@ def main():
     if not math.isfinite(args.seconds) or args.seconds <= 0:
         ap.error('--seconds must be positive and finite')
     import serial
-    parser = Stream()
+    from car_link import CarLink
     sent = False
     sent_boot = None
     sent_sequence = None
     end = time.monotonic() + args.seconds
     # Opening the port may reset this board. Wait for its own boot status.
-    with serial.Serial(args.port, 921600, timeout=.01, write_timeout=.1) as port:
+    with serial.Serial(args.port, 921600, timeout=.003, write_timeout=.04, exclusive=True) as port:
+        car = CarLink(port)
         while time.monotonic() < end:
-            for frame in parser.feed(port.read(512)):
-                if frame[2] != 0x11:
+            for s in car.poll():
+                if s['type'] != 'status':
                     continue
-                s = status(frame)
                 print(json.dumps(s), flush=True)
                 if sent and s['boot'] != sent_boot:
                     raise SystemExit('MCU restarted; command outcome unknown. No retry.')
                 if args.action and not sent:
+                    if args.action in ('install', 'arm', 'set'):
+                        if not s['receipt_watchdog']:
+                            raise SystemExit('Upload the paired ESP32 receipt-watchdog firmware first.')
+                        if s['link_lost'] or not car.receipts_current():
+                            continue
                     # Use observed MCU time conservatively, without adding estimated
                     # transit delay. Queuing may cause rejection, never extend authority.
                     packet = encode(action=args.action, boot=s['boot'],
