@@ -41,6 +41,10 @@ The build helper writes build/vehicle/. The Arduino IDE upload above compiles fr
 
 ## 3. Bring up USB and check the motor encoder
 
+The November 28 build provides a signed speed and age on each matched Pi report.
+See [speed states and setup](INTEGRATION_START_HERE.md#reading-speed-on-the-pi)
+for full-window measurements, short contiguous measurements and the 50 ms hold limit.
+
 On the Pi, from this extracted folder:
 
     sudo apt install python3-serial
@@ -87,7 +91,7 @@ from car_link import CarLink
 # Application hooks below must return promptly. The USB owner polls continuously.
 with serial.Serial(port_path, 921600, timeout=.003, write_timeout=.04,
                    exclusive=True) as port:
-    car = CarLink(port, on_event=handle_feedback)
+    car = CarLink(port, on_event=handle_feedback, speed_details=True)
     try:
         car.arm()  # call only on operator authorization
         while integration_running():

@@ -109,6 +109,22 @@ def exercise(peer):
 
     assert check(PeerPort()).startswith('PASS:')
 
+    samples=[]
+    car=CarLink(port,on_event=samples.append,speed_details=True)
+    deliver(bytes.fromhex(exchange('status')))
+    deliver(bytes.fromhex(exchange('pair')))
+    assert [message[2] for message in port.receipts]==[0x12,0x13]
+    for message in port.receipts:
+        send(message)
+    port.receipts.clear()
+    for _ in range(100):
+        deliver(bytes.fromhex(exchange('gapped')))
+        assert len(port.receipts)==1
+        send(port.receipts.pop())
+        result=samples[-1]['wheel_speed_output']
+        assert samples[-1]['present']==0 and result['state']=='short_window' and not result['wheel_valid']
+        assert abs(result['speed_mps']-.1507085)<1e-5 and 0<=result['age_us']<3000
+
 
 def main():
     with tempfile.TemporaryDirectory() as temp:
@@ -125,7 +141,8 @@ def main():
             if peer.wait(timeout=5):
                 raise RuntimeError('Firmware peer failed')
     print('PASS: ESP32 C++ packets -> Pi CarLink -> ESP32 C++ receipt parser/watchdog; '
-          'fragmentation, wrap, lost reply, corrupt pair, stale ACK, fourth-miss trip and recovery.')
+          'fragmentation, wrap, lost reply, corrupt pair, stale ACK, fourth-miss trip and recovery; '
+          '100/100 measured fallback speeds during injected acquisition gaps.')
 
 
 if __name__ == '__main__':

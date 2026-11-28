@@ -10,6 +10,9 @@ inline void u16(uint8_t* p, uint16_t v) { p[0] = v; p[1] = v >> 8; }
 inline void u32(uint8_t* p, uint32_t v) {
   for (unsigned i = 0; i < 4; ++i) p[i] = v >> (8 * i);
 }
+inline void u64(uint8_t* p, uint64_t v) {
+  u32(p,uint32_t(v)); u32(p+4,uint32_t(v>>32));
+}
 inline void f32(uint8_t* p, float v) {
   uint32_t bits; memcpy(&bits, &v, 4); u32(p, bits);
 }
@@ -30,6 +33,19 @@ struct Sample {
   uint16_t wheel_age, steer_age;
   uint8_t flags;
 };
+// Requested wheel supplement. The ordinary data/timing pair is still complete
+// and receipted independently. The counters are cumulative within this boot.
+inline void encode_wheel_detail(uint8_t* p,uint32_t boot,uint16_t seq,uint64_t report,
+    bool suspect,uint64_t start,uint64_t end,float speed,uint32_t errors,
+    uint32_t long_reads,uint32_t half_turns) {
+  memset(p,0,54); p[0]=0xa5; p[1]=0x5a; p[2]=4; p[3]=1;
+  u32(p+4,boot); u16(p+8,seq); u64(p+10,report);
+  const bool present=!suspect && start>0 && start<end && end<=report && report-end<25000;
+  p[18]=(present?1:0)|(suspect?2:0);
+  if(present) { u64(p+20,start); u64(p+28,end); f32(p+36,speed); }
+  u32(p+40,errors); u32(p+44,long_reads); u32(p+48,half_turns);
+  u16(p+52,crc(p+2,50));
+}
 // Companion to type 01. Independent acquisition times are essential when the
 // IMU is held/invalid but wheel samples continue. This is an interface extension.
 inline void encode_timing(uint8_t* p,uint16_t seq,uint8_t present,uint64_t report,

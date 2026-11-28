@@ -6,6 +6,7 @@ import struct
 from pathlib import Path
 
 SYNC = b"\xa5\x5a"
+WHEEL_DETAIL = struct.Struct('<BBIHQBBQQfIII')
 BODY = struct.Struct("<BBBBHI6fifHfH")
 
 
@@ -106,11 +107,11 @@ class Decoder:
             if len(self.buffer) < 4:
                 break
             kind, version = self.buffer[2:4]
-            if kind not in (1, 2, 3, 0x11) or (version != 1 and not (kind==3 and version==2)):
+            if kind not in (1, 2, 3, 4, 0x11) or (version != 1 and not (kind==3 and version==2)):
                 self.header_errors += 1
                 del self.buffer[0]
                 continue
-            size = {1:54,2:14,3:42,0x11:64}[kind]
+            size = {1:54,2:14,3:42,4:54,0x11:64}[kind]
             if len(self.buffer) < size:
                 break
             packet = bytes(self.buffer[:size])
@@ -119,6 +120,17 @@ class Decoder:
                 del self.buffer[0]
                 continue
             del self.buffer[:size]
+            if kind == 4:
+                _,_,boot,seq,report,flags,reserved,start,end,speed,errors,gaps,ambiguous=WHEEL_DETAIL.unpack(packet[2:-2])
+                if (reserved or flags not in (0,1,2) or not math.isfinite(speed) or
+                    (flags==1 and not (0<start<end<=report and 2000<=end-start<3000 and report-end<25000)) or
+                    (flags!=1 and (start or end or speed))):
+                    self.header_errors+=1
+                    continue
+                result.append(dict(type='wheel_detail',boot=boot,seq=seq,report_us=report,
+                    segment_present=bool(flags&1),suspect=bool(flags&2),start_us=start,
+                    end_us=end,speed_mps=speed,read_errors=errors,timing_gaps=gaps,ambiguous_gaps=ambiguous))
+                continue
             if kind == 0x11:
                 from control_link import status
                 try: result.append(dict(type='status',**status(packet)))

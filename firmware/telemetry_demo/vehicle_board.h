@@ -16,6 +16,8 @@ MotorEncoder encoder;
 wheel_health::MotionMonitor motion;
 struct WheelState {
   uint32_t count=0, previous_gaps=0;
+  uint32_t previous_errors=0;
+  bool control_continuous=false;
   uint64_t stamp=0;
   float speed=0;
   bool valid=false, initialized=false, continuous_interval=false;
@@ -23,6 +25,8 @@ struct WheelState {
     const auto reading=encoder.snapshot();
     const uint32_t current=reading.count;
     const bool continuous=reading.tracking && previous_gaps==reading.gaps;
+    control_continuous=continuous && previous_errors==reading.read_errors;
+    previous_errors=reading.read_errors;
     previous_gaps=reading.gaps;
     const auto delta=encoder_math::difference(current,count);
     motion.update(now,driven,effort,delta!=0,motion_effort_threshold,motion_timeout_us);
@@ -88,6 +92,7 @@ control_wire::Parser parser;
 endpoint::ReceiptWatchdog receipts;
 uint32_t tx_drops=0;
 uint64_t next_tick=0,next_status=0;
+uint64_t speed_detail_until=0;
 bool watchdog_ok=false;
 bool send(const uint8_t* p,unsigned n) {
   if(Serial.availableForWrite()>=int(n) && Serial.write(p,n)==n) return true;
@@ -100,6 +105,7 @@ void status(uint64_t now) {
   send(p,64);
 }
 void trip_link(uint64_t now) {
+  speed_detail_until=0;
   engine->link_lost();
   driver.write(engine->output);
   status(now);
@@ -112,7 +118,10 @@ void pair_queued(uint16_t seq,uint64_t report_us) {
 bool healthy(uint64_t now) {
   const auto reading=encoder.snapshot();
   const bool direction_safe=wheel_health::MotionMonitor::configured(motion_effort_threshold,motion_timeout_us);
-  return receipts.ready() && reading.tracking && wheel.previous_gaps==reading.gaps && direction_safe && watchdog_ok && driver.ready() && wheel.valid && wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
+  return receipts.ready() && reading.tracking && wheel.control_continuous &&
+      wheel.previous_gaps==reading.gaps && wheel.previous_errors==reading.read_errors &&
+      direction_safe && watchdog_ok && driver.ready() && wheel.valid &&
+      wheel.speed>=0 && now>=wheel.stamp && now-wheel.stamp<=25000;
 }
 void begin(uint64_t telemetry_period_us) {
   static endpoint::Engine instance(esp_random());engine=&instance;engine->calibration()=calibration();
@@ -135,6 +144,8 @@ void service() {
     control_wire::Receipt ack{};
     now=uint64_t(esp_timer_get_time());
     const auto kind=parser.feed(uint8_t(Serial.read()),now,r,ack);
+    if(kind==control_wire::Parser::Kind::SpeedSubscribe && receipts.ready())
+      speed_detail_until=now+2000000;
     if(kind==control_wire::Parser::Kind::Ack) {
       const bool was_ready=receipts.ready();
       if(receipts.acknowledge(ack,now) && !was_ready) {
@@ -154,7 +165,7 @@ void service() {
     wheel.capture(now,driver.physical() && driver.applied_enabled,driver.applied_effort);
     now=uint64_t(esp_timer_get_time());
     if(engine->tick(now,healthy(now),driver)) status(now);
-    next_tick=now+10000; // Skip late releases; never replay catch-up commands.
+    next_tick+=((now-next_tick)/10000+1)*10000; // Keep phase and skip missed releases.
   }
   // Deadline enforcement each service, independent of the 100 Hz estimator.
   if(engine->armed()) {
@@ -164,13 +175,13 @@ void service() {
   if(watchdog_ok) esp_task_wdt_reset();
 }
 bool fill(telemetry::Sample& s,uint64_t now) {
-  const auto reading=encoder.snapshot();
   // Independent ages refer to transmission time (proposed v0.1 clarification).
   s.ticks=int32_t(wheel.count);s.speed=wheel.speed;
   const uint64_t age=wheel.stamp && now>=wheel.stamp?now-wheel.stamp:65535;
   s.wheel_age=uint16_t(age>65535?65535:age);
-  const bool wheel_present=wheel.continuous_interval && reading.tracking &&
-      wheel.previous_gaps==reading.gaps && age<=25000;
+  // A later encoder error affects the next window. This completed, timestamped
+  // measurement stays usable at its original source time.
+  const bool wheel_present=wheel.continuous_interval && !motion.suspect && age<=25000;
   if(wheel.valid && wheel_present) s.flags|=2;
   s.steering=engine->output.steering;
   const uint64_t steer_age=driver.last_write&&now>=driver.last_write?now-driver.last_write:65535;

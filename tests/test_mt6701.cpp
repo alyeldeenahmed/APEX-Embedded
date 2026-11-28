@@ -29,12 +29,25 @@ int main() {
   assert(tracker.state.tracking && tracker.state.count==3 && tracker.state.acquired_us==650);
   tracker.read_failed();
   assert(!tracker.state.tracking && tracker.state.read_errors==1);
-  tracker.observe(5000, 950, 1050, 1000, -1);
-  assert(!tracker.state.tracking && tracker.state.count==3);
-  tracker.observe(4997, 1400, 1550, 1000, -1);
+  tracker.observe(16381, 950, 1050, 1000, -1);
+  assert(tracker.state.tracking && tracker.state.count==5 && !tracker.state.timing_gaps);
+  tracker.observe(16380, 1400, 1550, 1000, -1);
   assert(tracker.state.tracking && tracker.state.count==6);
   tracker.observe(4900, 2800, 2960, 1000, -1);
   assert(!tracker.state.tracking && tracker.state.count==6);
+  assert(tracker.state.timing_gaps==1);
   tracker.observe((4900+8192)%16384, 3200, 3350, 1000, -1);
   assert(!tracker.state.tracking && tracker.state.count==6);
+  assert(tracker.state.ambiguous_gaps==1);
+  mt6701::AngleTracker segments;
+  for (int i=0;i<=5;++i) segments.observe(16383-i*10,100+i*400,200+i*400,1000,-1);
+  assert(segments.state.segment_start_us==200 && segments.state.segment_end_us==2200);
+  assert(segments.state.segment_delta==50);
+  segments.read_failed();
+  segments.observe(120,4100,4200,1000,-1);
+  assert(!segments.state.tracking && segments.state.count==50 && segments.state.timing_gaps==1);
+  for(int i=1;i<=5;++i) segments.observe(120,4100+i*400,4200+i*400,1000,-1);
+  assert(segments.state.segment_delta==0 && segments.state.segment_start_us==4200);
+  for(int i=1;i<=5;++i) segments.observe(120+2*i,6100+i*400,6200+i*400,1000,-1);
+  assert(segments.state.segment_delta==-10 && segments.state.segment_end_us==8200);
 }

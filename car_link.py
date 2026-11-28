@@ -6,7 +6,8 @@ import time
 from pathlib import Path
 
 from control_link import encode
-from protocol import Decoder, TelemetryReceipts
+from protocol import Decoder, TelemetryReceipts, frame
+from wheel_speed import WheelSpeed
 
 
 class MotorTelemetry:
@@ -46,13 +47,17 @@ class MotorTelemetry:
 
 
 class CarLink:
-    def __init__(self, port, on_event=None):
+    def __init__(self, port, on_event=None, *, speed_details=False):
         self.port = port
         self.decoder = Decoder()
         self.receipts = TelemetryReceipts()
         self.receipts_sent = 0
         self.last_receipt_write = None
         self.motor = MotorTelemetry()
+        self.speed = WheelSpeed()
+        self.speed_details = speed_details
+        self.next_subscription = 0.
+        self.subscription_boot = None
         self.on_event = on_event
         self.last = None
         self.boot = None
@@ -87,6 +92,12 @@ class CarLink:
                 self._write(receipt)
                 self.receipts_sent += 1
                 self.last_receipt_write = time.monotonic()
+                if self.speed_details and (self.receipts.boot != self.subscription_boot or
+                                           self.last_receipt_write >= self.next_subscription):
+                    self._write(frame(b'\x13\x01'))
+                    self.subscription_boot = self.receipts.boot
+                    self.next_subscription = self.last_receipt_write + 1.
+            self.speed.feed(event)
             self.motor.feed(event)
             if event['type'] == 'status':
                 if self.session is not None:
@@ -182,7 +193,7 @@ def main():
         ap.error('Use finite commands and a duration up to 2 seconds')
     import serial
     with serial.Serial(args.port, 921600, timeout=.003, write_timeout=.04, exclusive=True) as port:
-        car = CarLink(port)
+        car = CarLink(port, speed_details=True)
         if args.mode == 'monitor':
             capture = args.output.open('x', encoding='utf-8') if args.output else None
             end = time.monotonic()+args.seconds if args.seconds else math.inf

@@ -15,12 +15,16 @@ class View:
         self.gaps=0
         self.pairs=0
         self.link_status=None
+        self.encoder_diagnostic=None
     def feed(self, event):
         if event['type']=='status':
             if self.boot is not None and self.boot!=event['boot']:
                 self.pending=self.pair=None
+                self.encoder_diagnostic=None
             self.boot=event['boot']
             self.link_status=event
+        elif event['type']=='wheel_detail' and event['boot']==self.boot:
+            self.encoder_diagnostic=event
         elif event['type']=='data':
             if event['flags'] & 64:
                 self.pair=None
@@ -40,7 +44,6 @@ class View:
         report=t['report_us']
         def fresh(bit,stamp,limit):
             return bool(t['present'] & bit) and 0<stamp<=report and report-stamp<=limit
-        wheel=fresh(2,t['wheel_us'],25000)
         imu=fresh(1,t['imu_us'],50000)
         lines=[f"Sequence {d['seq']} | pairs {self.pairs} | encoder gap records {self.gaps}"]
         if self.link_status and not self.link_status.get('receipt_watchdog'):
@@ -49,10 +52,24 @@ class View:
             status=self.link_status
             state='LOST' if status['link_lost'] else 'clear'
             lines.append(f"Last ESP status: receipt fault {state} | outstanding {status['unacked_pairs']}/4 | armed {'YES' if status['flags'] & 2 else 'NO'}")
-        if wheel:
-            v=d['wheel_speed']
-            lines.append(f"SPEED: {v:+.3f} m/s  ({v*3.6:+.2f} km/h) | wheel valid={'YES' if d['flags']&2 else 'NO: confirmation pending'}")
-        else:lines.append('SPEED: UNAVAILABLE - encoder interval missing/stale (do not interpret as stopped)')
+        w=t.get('wheel_speed_output',{})
+        state=w.get('state','unavailable')
+        age=w.get('age_us')
+        if age is not None:
+            age+=int(max(0.,now-self.received)*1e6)
+            if age>=50000: state='unavailable'
+        if state=='unavailable':
+            history=w.get('last_known_mps')
+            label=f' | last known {history:+.3f} m/s, age {age/1000:.1f} ms' if history is not None else ''
+            lines.append('SPEED: UNAVAILABLE'+label)
+        else:
+            v=w['speed_mps']
+            label={'measured':'MEASURED','short_window':'SHORT WINDOW','held':'HELD'}[state]
+            contract='YES' if w['wheel_valid'] else ('NO: confirmation pending' if state=='measured' else 'NO')
+            lines.append(f'SPEED: {v:+.3f} m/s ({v*3.6:+.2f} km/h) | {label}, age {age/1000:.1f} ms | wheel valid={contract}')
+        if self.encoder_diagnostic:
+            e=self.encoder_diagnostic
+            lines.append(f"Encoder totals: I2C read errors {e['read_errors']} | timing gaps {e['timing_gaps']} | ambiguous half-turns {e['ambiguous_gaps']}")
         if imu:
             lines.append('ACCEL m/s2: X={:+.3f} Y={:+.3f} Z={:+.3f}'.format(*d['accel']))
             lines.append('GYRO rad/s: X={:+.3f} Y={:+.3f} Z={:+.3f}'.format(*d['gyro']))
@@ -76,7 +93,7 @@ def main():
             view.feed(e)
             if capture:capture.write(json.dumps(e)+'\n')
         with serial.Serial(a.port,921600,timeout=.003,write_timeout=.04,exclusive=True) as port:
-            car=CarLink(port,on_event=event)
+            car=CarLink(port,on_event=event,speed_details=True)
             print('APEX slow viewer - acknowledges telemetry. Sends no actuator commands. Ctrl+C to stop.')
             print('Close Arduino Serial Monitor and other recorders before using this viewer.')
             due=time.monotonic()

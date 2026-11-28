@@ -60,6 +60,10 @@ void loop() {
 #endif
   uint64_t now = uint64_t(esp_timer_get_time());
   if (now >= next_data) {
+#if APEX_VEHICLE
+    const auto encoder_at_report=vehicle_board::encoder.snapshot();
+    now=uint64_t(esp_timer_get_time());
+#endif
 #if APEX_IMU_BENCH
     imu_bench::emit(now);
 #else
@@ -80,7 +84,8 @@ void loop() {
     if(available) {
       if(first_packet) sample.flags|=0x40;
 #if APEX_VEHICLE
-      uint8_t packet[96]; // Queue data + timing together, with the same sequence.
+      uint8_t bundle[54+96];
+      uint8_t* packet=bundle+54;
       telemetry::encode(packet,sequence,sample);
       const auto& reading=imu_board::device.reading();
       const uint8_t present=(reading.present?1:0)|(wheel_continuous?2:0)|
@@ -92,7 +97,18 @@ void loop() {
         (wheel_health::MotionMonitor::configured(vehicle_config::motion_effort_threshold,vehicle_config::motion_timeout_us)?4:0),
         vehicle_config::wheel_diagnostics_v2);
       const uint16_t pair_sequence=sequence++;
-      if(vehicle_board::send(packet,sizeof(packet))) {
+      uint8_t* first=packet;
+      unsigned bytes=96;
+      if(now<vehicle_board::speed_detail_until && Serial.availableForWrite()>=int(sizeof(bundle))) {
+        const auto& e=encoder_at_report;
+        const uint64_t elapsed=e.segment_end_us-e.segment_start_us;
+        const float speed=elapsed?float(e.segment_delta)*vehicle_config::metres_per_count*1e6f/float(elapsed):0;
+        telemetry::encode_wheel_detail(bundle,vehicle_board::engine->boot(),pair_sequence,now,
+            vehicle_board::motion.suspect,e.segment_start_us,e.segment_end_us,speed,
+            e.read_errors,e.timing_gaps,e.ambiguous_gaps);
+        first=bundle; bytes=sizeof(bundle);
+      }
+      if(vehicle_board::send(first,bytes)) {
         first_packet=false;
         vehicle_board::pair_queued(pair_sequence,now);
       }

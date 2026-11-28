@@ -1,10 +1,14 @@
 import unittest
 from slow_monitor import View
+from wheel_speed import WheelSpeed
 
 class SlowMonitorTests(unittest.TestCase):
     def pair(self,view,present=3):
-        view.feed(dict(type='data',seq=1,flags=0,wheel_speed=1,gyro=[0,0,0],accel=[0,0,9.8]))
-        view.feed(dict(type='timing',seq=1,present=present,report_us=10000,imu_us=9500,wheel_us=9500))
+        speed=WheelSpeed()
+        for e in (dict(type='status',boot=7),dict(type='data',seq=1,flags=0,wheel_speed=1,gyro=[0,0,0],accel=[0,0,9.8]),
+                  dict(type='timing',seq=1,present=present,report_us=10000,imu_us=9500,wheel_us=9500)):
+            speed.feed(e)
+            view.feed(e)
     def test_unconfirmed_speed_is_labelled(self):
         v=View();self.pair(v)
         text=v.text(v.received)

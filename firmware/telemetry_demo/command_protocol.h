@@ -44,7 +44,7 @@ class Parser {
     memmove(bytes_,bytes_+count,size_);
   }
 public:
-  enum class Kind { None, Command, Ack };
+  enum class Kind { None, Command, Ack, SpeedSubscribe };
   uint32_t errors=0;
   Kind feed(uint8_t byte,uint64_t now,Request& r,Receipt& ack) {
     if(size_ && now-last_>20000) { size_=0; ++errors; }
@@ -53,6 +53,14 @@ public:
       if(bytes_[0]!=0xa5 || (size_>1 && bytes_[1]!=0x5a)) { consume(1); continue; }
       if(size_<3) break;
       const bool command=bytes_[2]==0x10;
+      if(bytes_[2]==0x13) {
+        if(size_<6) break;
+        if(bytes_[3]==1 && telemetry::crc(bytes_+2,2)==
+           (uint16_t(bytes_[4]) | uint16_t(bytes_[5])<<8)) {
+          consume(6); return Kind::SpeedSubscribe;
+        }
+        ++errors; consume(1); continue;
+      }
       if(!command && bytes_[2]!=0x12) { ++errors; consume(1); continue; }
       const unsigned length=command?SIZE:RECEIPT_SIZE;
       if(size_<length) break;

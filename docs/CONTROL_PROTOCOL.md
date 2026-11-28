@@ -51,7 +51,34 @@ context and explicit ARM are required for motion. No receipt extends a command
 deadline. Pi integration must service the serial port continuously while MPC or
 ROS is idle. Use the single-owner instructions in INTEGRATION_START_HERE.md.
 
-## Request (64 bytes)
+## Optional wheel-speed detail
+
+The serial owner can also request wheel-speed diagnostics by writing a 6-byte
+frame: bytes 0–3 are A5 5A 13 01, bytes 4–5 are the little-endian CRC over
+bytes 2–3. The MCU accepts this request only with a healthy receipt link. It
+enables optional type 04 frames for two seconds. The updated viewer renews
+the request once per second. This request cannot acknowledge a pair, extend an
+actuator deadline, install a session or arm. Link loss clears the subscription.
+
+When there is UART space, a 54-byte type 04 frame immediately precedes the
+regular 01/03 pair. A receiver matches boot, sequence and 64-bit report time.
+All quantities below are little-endian. CRC covers bytes 2–51.
+
+| Offset | Type | Wheel-detail field |
+|---|---|---|
+| 0–3 | bytes | A5 5A 04 01 |
+| 4, 8, 10 | uint32, uint16, uint64 | Boot nonce, pair sequence, report time in µs |
+| 18–19 | uint8, uint8 | Bit 0 short measurement present, bit 1 encoder suspect. Second byte reserved zero. |
+| 20, 28 | uint64, uint64 | Start and end of the contiguous measurement in ESP µs |
+| 36 | float32 | Signed nominal speed in m/s, meaningful with bit 0 set |
+| 40, 44, 48 | uint32 each | I²C read failures, excessive acquisition intervals, ambiguous half-turns since boot |
+| 52 | uint16 | CRC-16/CCITT-FALSE |
+
+The original 01/03 pair retains its existing meaning. Receivers use the type 04
+measurement only as a separately labelled commissioning observation. See
+[speed states and freshness](../INTEGRATION_START_HERE.md#reading-speed-on-the-pi).
+
+## Control request (64 bytes)
 
 All multibyte values little-endian; float values IEEE-754 float32, finite only.
 
